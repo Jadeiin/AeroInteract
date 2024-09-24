@@ -29,8 +29,11 @@ class SamClipRos:
             "image_topic", "/camera/color/image_raw"
         )  # Default is image_raw topic of Tiago robot
         self.pub = rospy.Publisher(
-            "/sam_mask", maskID, queue_size=1000
+            "/sam_mask", maskID, queue_size=10
         )  # TODO: pub np.ndarray related func: maskprocessing() and Pub_mask()
+        self.pub_img = rospy.Publisher(
+            "/sam_img", SensorImage, queue_size=10
+        )
         self.sub = rospy.Subscriber(
             self.image_topic, SensorImage, self.callback
         )  # TODO: find image topic from Tiago!
@@ -277,9 +280,10 @@ class SamClipRos:
             # TODO: change to multiple masks
             chosen_masks = masks[indices[0]]
 
-        # segmentation_mask_image = chosen_masks["segmentation"].astype("uint8") * 255
-        # seg_image = cv_image.copy()
-        # seg_image[segmentation_mask_image > 0] = [255, 0, 0]
+        segmentation_mask_image = chosen_masks["segmentation"].astype("uint8") * 255
+        seg_image = cv_image.copy()
+        seg_image[segmentation_mask_image > 0] = [255, 0, 0]
+        self.pub_img.publish(self.cv2rosimg(seg_image))
         # visualize CLIP result
         # plt.imshow(seg_image)
         # plt.axis('off')
