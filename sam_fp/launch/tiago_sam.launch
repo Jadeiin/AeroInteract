@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+    <launch>
+        <!-- Initial arugments for SAM -->
+        <arg name="image_topic" default="/xtion/rgb/image_raw"/>
+        <arg name="search_text"  default=""/>
+
+    
+        <node pkg="sam_fp" type="samros.py" name="samros" output="screen">
+            <!-- Conditionally set the parameter if the argument is not empty -->
+            <param name="search_text" value="$(arg search_text)" if="$(eval len(arg('search_text')) > 0)"/>
+        </node>
+
+    </launch>    
