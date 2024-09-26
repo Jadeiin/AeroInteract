@@ -53,7 +53,7 @@ void pcd_processing::update(const ros::Time &time) {
     objects_cloud_pub_.publish(cloudmsg_);
     ROS_INFO_STREAM("object_boxes_pub_:");
     ROS_INFO_STREAM(object_boxes_pub_);
-    object_boxes_pub_.publish(bounding_boxes_);
+    object_boxes_pub_.publish(object_boxes_);
 
     // Reset the flag
     is_cloud_updated = false;
@@ -174,9 +174,8 @@ bool pcd_processing::extract_bboxes(cloudPtr &input) {
 
     // Calculate transform matrix
     Eigen::Vector3f ea =
-        (eigenVectorsPCA)
-            .eulerAngles(2, 1, 0)  // yaw pitch roll
-        Eigen::AngleAxisf rollAngle(ea[0], Eigen::Vector3f::UnitZ());
+        (eigenVectorsPCA).eulerAngles(2, 1, 0);  // yaw pitch roll
+    Eigen::AngleAxisf rollAngle(ea[0], Eigen::Vector3f::UnitZ());
     Eigen::Affine3f transform = Eigen::Affine3f::Identity();
     transform.translate(center);
     transform.rotate(rollAngle);
@@ -194,7 +193,7 @@ bool pcd_processing::extract_bboxes(cloudPtr &input) {
 
     // Publish bounding box
     visualization_msgs::Marker marker;
-    marker.header.frame_id = "camera_link"; //TODO: change me
+    marker.header.frame_id = "camera_link";  // TODO: change me
     marker.header.stamp = ros::Time::now();
     marker.ns = "bounding_box";
     marker.type = visualization_msgs::Marker::CUBE;
