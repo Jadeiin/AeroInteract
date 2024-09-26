@@ -35,6 +35,8 @@
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl_ros/point_cloud.h>
 #include <sensor_msgs/PointCloud2.h>
+#include <visualization_msgs/Marker.h>
+#include <visualization_msgs/MarkerArray.h>
 
 #include <pcl_ros/impl/transforms.hpp>
 
@@ -122,6 +124,15 @@ class pcd_processing {
                        cloudPtr &objects);
 
   /**
+   * @brief extract bboxes from the point cloud
+   *
+   * @param input objects that cut from point cloud
+   * @return true success
+   * @return false failure
+   */
+  bool extract_bboxes(cloudPtr &input);
+
+  /**
    * @brief callback function for new pointcloud subscriber
    *
    * @param msg
@@ -143,12 +154,14 @@ class pcd_processing {
   ros::Subscriber point_cloud_sub_;   //!< Subscriber to the PointCloud data
   ros::Publisher objects_cloud_pub_;  //!< Publish objects point cloud
   ros::Subscriber masks_sub_;         //!< Subscriber to the masks data
+  ros::Publisher object_boxes_pub_;   //!< Publish object bounding boxes
   cloudPtr raw_cloud_;                //!< Internal raw point cloud
   cloudPtr preprocessed_cloud_;       //!< Internal preprocessed cloud
   cloudPtr objects_cloud_;            //!< Internal objects point cloud
   masks_msgs::maskID::Ptr
       latest_maskID_msg_;              //!< Internal latest maskID message
   sensor_msgs::PointCloud2 cloudmsg_;  //!< save msg to cloudmsg_
+  visualization_msgs::MarkerArray object_boxes_;  //!< object bounding box msg
 
   std::vector<singlemask> processed_masks_;  //!< Internal processed masks
 
