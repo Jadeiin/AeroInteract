@@ -120,6 +120,10 @@ bool pcd_processing::cut_point_cloud(cloudPtr &input,
   objects->is_dense =
       false;  // Set to false if there might be NaN or invalid points
 
+  // Remove NaN points from the processed cloud
+  std::vector<int> indices;
+  pcl::removeNaNFromPointCloud(*objects, *objects, indices);
+
   return true;
 }
 
