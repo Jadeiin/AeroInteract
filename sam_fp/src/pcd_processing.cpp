@@ -77,9 +77,9 @@ bool pcd_processing::cut_point_cloud(cloudPtr &input,
                                      const std::vector<singlemask> &masks,
                                      cloudPtr &objects) {
   // Implement the logic to cut the point cloud using masks
-  // Point Cloud frame_id: xtion_rgb_optical_frame
-  // image_raw frame_id: xtion_rgb_optical_frame
-  // masks frame_id: xtion_rgb_optical_frame
+  // Point Cloud frame_id: camera_color_optical_frame
+  // image_raw frame_id: camera_color_optical_frame
+  // masks frame_id: camera_color_optical_frame
 
   // Clear the output cloud
   *objects = *input;
@@ -172,7 +172,7 @@ bool pcd_processing::extract_bboxes(cloudPtr &input) {
 
   // Publish bounding box
   visualization_msgs::Marker marker;
-  marker.header.frame_id = "camera_link";  // TODO: change me
+  marker.header.frame_id = "camera_color_optical_frame";
   marker.header.stamp = ros::Time::now();
   marker.ns = "bounding_box";
   marker.type = visualization_msgs::Marker::CUBE;
