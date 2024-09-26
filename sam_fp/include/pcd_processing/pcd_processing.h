@@ -59,7 +59,7 @@ class pcd_processing {
       cloudPtr;  // Cloud Pointer Type
 
   // Constructor and Destructor
-  pcd_processing(const std::string &topic = "/camera/depth/color/points",
+  pcd_processing(const std::string &topic = "/camera/depth_registered/points",
                  const std::string &frame = "camera_link")
       : pointcloud_topic(topic),
         base_frame(frame),
