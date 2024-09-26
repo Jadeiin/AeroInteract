@@ -130,92 +130,66 @@ bool pcd_processing::cut_point_cloud(cloudPtr &input,
 bool pcd_processing::extract_bboxes(cloudPtr &input) {
   // Implement the logic to extract bounding boxes from the point cloud
   // homebrew method
-  // 1. euclidean clustering
-  // 2. find the bounding box of each cluster
-  // 3. store the bounding boxes
-  pcl::search::KdTree<point>::Ptr tree(new pcl::search::KdTree<point>);
-  tree->setInputCloud(input);
-  std::vector<pcl::PointIndices> local_indices;
-  pcl::EuclideanClusterExtraction<point> euclid;
-  euclid.setInputCloud(input);
-  float min_dis = 0.5;
-  float min_points = 10;
-  euclid.setClusterTolerance(min_dis);
-  euclid.setMinClusterSize(min_points);
-  euclid.setSearchMethod(tree);
-  euclid.extract(local_indices);
-  ROS_INFO_STREAM("clusters:");
-  ROS_INFO_STREAM(local_indices.size());
 
-  for (const auto &indices : local_indices) {
-    cloudPtr cluster(new cloud);
-    for (const auto &index : indices.indices) {
-      cluster->points.push_back(input->points[index]);
-    }
-    // Compute centroid and center
-    Eigen::Vector4f centroid;
-    point min_pt, max_pt;
-    pcl::compute3DCentroid(*cluster, centroid);
-    pcl::getMinMax3D(*cluster, min_pt, max_pt);
-    Eigen::Vector3f center =
-        (max_pt.getVector3fMap() + min_pt.getVector3fMap()) / 2;
+  // Compute centroid and center
+  Eigen::Vector4f centroid;
+  point min_pt, max_pt;
+  pcl::compute3DCentroid(*input, centroid);
+  pcl::getMinMax3D(*input, min_pt, max_pt);
+  Eigen::Vector3f center =
+      (max_pt.getVector3fMap() + min_pt.getVector3fMap()) / 2;
 
-    // Compute principal directions
-    Eigen::Matrix3f covariance;
-    pcl::computeCovarianceMatrixNormalized(*cluster, centroid, covariance);
-    Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> eigen_solver(
-        covariance, Eigen::ComputeEigenvectors);
-    Eigen::Matrix3f eigenVectorsPCA = eigen_solver.eigenvectors();
-    // Eigen::Vector3f eigenValuesPCA = eigen_solver.eigenvalues();
-    eigenVectorsPCA.col(2) =
-        eigenVectorsPCA.col(0).cross(eigenVectorsPCA.col(1));
-    eigenVectorsPCA.col(0) =
-        eigenVectorsPCA.col(1).cross(eigenVectorsPCA.col(2));
-    eigenVectorsPCA.col(1) =
-        eigenVectorsPCA.col(2).cross(eigenVectorsPCA.col(0));
-    // Reorder eigenvectors based on eigenvalues (largest to smallest)
-    eigenVectorsPCA.col(0).swap(eigenVectorsPCA.col(2));
+  // Compute principal directions
+  Eigen::Matrix3f covariance;
+  pcl::computeCovarianceMatrixNormalized(*input, centroid, covariance);
+  Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> eigen_solver(
+      covariance, Eigen::ComputeEigenvectors);
+  Eigen::Matrix3f eigenVectorsPCA = eigen_solver.eigenvectors();
+  // Eigen::Vector3f eigenValuesPCA = eigen_solver.eigenvalues();
+  eigenVectorsPCA.col(2) = eigenVectorsPCA.col(0).cross(eigenVectorsPCA.col(1));
+  eigenVectorsPCA.col(0) = eigenVectorsPCA.col(1).cross(eigenVectorsPCA.col(2));
+  eigenVectorsPCA.col(1) = eigenVectorsPCA.col(2).cross(eigenVectorsPCA.col(0));
+  // Reorder eigenvectors based on eigenvalues (largest to smallest)
+  eigenVectorsPCA.col(0).swap(eigenVectorsPCA.col(2));
 
-    // Calculate transform matrix
-    Eigen::Vector3f ea =
-        (eigenVectorsPCA).eulerAngles(2, 1, 0);  // yaw pitch roll
-    Eigen::AngleAxisf rollAngle(ea[0], Eigen::Vector3f::UnitZ());
-    Eigen::Affine3f transform = Eigen::Affine3f::Identity();
-    transform.translate(center);
-    transform.rotate(rollAngle);
+  // Calculate transform matrix
+  Eigen::Vector3f ea =
+      (eigenVectorsPCA).eulerAngles(2, 1, 0);  // yaw pitch roll
+  Eigen::AngleAxisf rollAngle(ea[0], Eigen::Vector3f::UnitZ());
+  Eigen::Affine3f transform = Eigen::Affine3f::Identity();
+  transform.translate(center);
+  transform.rotate(rollAngle);
 
-    // Calculate bounding box
-    cloudPtr transformed_cluster(new cloud);
-    pcl::transformPointCloud(*cluster, *transformed_cluster,
-                             transform.inverse());
-    pcl::getMinMax3D(*transformed_cluster, min_pt, max_pt);
-    center = (max_pt.getVector3fMap() + min_pt.getVector3fMap()) / 2;
-    Eigen::Vector3f bbox = (max_pt.getVector3fMap() - min_pt.getVector3fMap());
-    Eigen::Affine3f transform2 = Eigen::Affine3f::Identity();
-    transform2.translate(center);
-    Eigen::Affine3f transform3 = transform * transform2;
+  // Calculate bounding box
+  cloudPtr transformed_input(new cloud);
+  pcl::transformPointCloud(*input, *transformed_input, transform.inverse());
+  pcl::getMinMax3D(*transformed_input, min_pt, max_pt);
+  center = (max_pt.getVector3fMap() + min_pt.getVector3fMap()) / 2;
+  Eigen::Vector3f bbox = (max_pt.getVector3fMap() - min_pt.getVector3fMap());
+  Eigen::Affine3f transform2 = Eigen::Affine3f::Identity();
+  transform2.translate(center);
+  Eigen::Affine3f transform3 = transform * transform2;
 
-    // Publish bounding box
-    visualization_msgs::Marker marker;
-    marker.header.frame_id = "camera_link";  // TODO: change me
-    marker.header.stamp = ros::Time::now();
-    marker.ns = "bounding_box";
-    marker.type = visualization_msgs::Marker::CUBE;
-    marker.action = visualization_msgs::Marker::ADD;
-    marker.pose.position.x = transform3.translation().x();
-    marker.pose.position.y = transform3.translation().y();
-    marker.pose.position.z = transform3.translation().z();
-    marker.pose.orientation.z = rollAngle.angle();
-    marker.scale.x = bbox.x();
-    marker.scale.y = bbox.y();
-    marker.scale.z = bbox.z();
-    marker.color.r = 1.0f;
-    marker.color.g = 0.0f;
-    marker.color.b = 0.0f;
-    marker.color.a = 0.5;
-    marker.lifetime = ros::Duration(1.0);
-    object_boxes_.markers.push_back(marker);
-  }
+  // Publish bounding box
+  visualization_msgs::Marker marker;
+  marker.header.frame_id = "camera_link";  // TODO: change me
+  marker.header.stamp = ros::Time::now();
+  marker.ns = "bounding_box";
+  marker.type = visualization_msgs::Marker::CUBE;
+  marker.action = visualization_msgs::Marker::ADD;
+  marker.pose.position.x = transform3.translation().x();
+  marker.pose.position.y = transform3.translation().y();
+  marker.pose.position.z = transform3.translation().z();
+  marker.pose.orientation.z = rollAngle.angle();
+  marker.scale.x = bbox.x();
+  marker.scale.y = bbox.y();
+  marker.scale.z = bbox.z();
+  marker.color.r = 1.0f;
+  marker.color.g = 0.0f;
+  marker.color.b = 0.0f;
+  marker.color.a = 0.5;
+  marker.lifetime = ros::Duration(1.0);
+  object_boxes_.markers.push_back(marker);
 
   // library method
   // auto config = YAML::LoadFile(ROOT_PATH "/config/config.yaml")["Cluster"];
