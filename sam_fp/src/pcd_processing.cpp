@@ -155,7 +155,7 @@ bool pcd_processing::extract_bboxes(cloudPtr &input) {
   // Calculate transform matrix
   Eigen::Vector3f ea =
       (eigenVectorsPCA).eulerAngles(2, 1, 0);  // yaw pitch roll
-  Eigen::AngleAxisf rollAngle(ea[0], Eigen::Vector3f::UnitZ());
+  Eigen::AngleAxisf rollAngle(ea[1], Eigen::Vector3f::UnitZ());
   Eigen::Affine3f transform = Eigen::Affine3f::Identity();
   transform.translate(center);
   transform.rotate(rollAngle);
@@ -181,7 +181,7 @@ bool pcd_processing::extract_bboxes(cloudPtr &input) {
   marker.pose.position.y = transform3.translation().y();
   marker.pose.position.z = transform3.translation().z();
   // Quaternion
-  marker.pose.orientation.z = sin(rollAngle.angle() / 2.0);
+  marker.pose.orientation.y = sin(rollAngle.angle() / 2.0);
   marker.pose.orientation.w = cos(rollAngle.angle() / 2.0);
   marker.scale.x = bbox.x();
   marker.scale.y = bbox.y();
@@ -190,7 +190,6 @@ bool pcd_processing::extract_bboxes(cloudPtr &input) {
   marker.color.g = 0.0f;
   marker.color.b = 0.0f;
   marker.color.a = 0.5;
-  marker.lifetime = ros::Duration(1.0);
   object_boxes_.markers.push_back(marker);
 
   // library method
