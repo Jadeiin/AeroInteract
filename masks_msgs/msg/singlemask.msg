@@ -3,7 +3,3 @@ int16[] shape
 int64[] segmentation
 int32 area
 int32[] bbox
-float64 predicted_iou
-float32[] point_coords
-float64 stability_score
-int16[] crop_box

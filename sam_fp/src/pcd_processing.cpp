@@ -239,6 +239,7 @@ std::vector<pcd_processing::singlemask> pcd_processing::maskID_msg_processing(
   std::vector<singlemask> masks;
   for (const auto &singlemask_msg : maskID->maskID) {
     singlemask mask;
+    mask.maskid = singlemask_msg.maskid;
     mask.segmentation =
         Eigen::Map<const Eigen::Matrix<int64_t, Eigen::Dynamic, Eigen::Dynamic,
                                        Eigen::RowMajor>>(
@@ -246,13 +247,6 @@ std::vector<pcd_processing::singlemask> pcd_processing::maskID_msg_processing(
             singlemask_msg.shape[1]);
     mask.area = singlemask_msg.area;
     mask.bbox = singlemask_msg.bbox;
-    mask.predicted_iou = singlemask_msg.predicted_iou;
-    mask.point_coords = Eigen::Map<
-        const Eigen::Matrix<float, Eigen::Dynamic, 2, Eigen::RowMajor>>(
-        singlemask_msg.point_coords.data(),
-        singlemask_msg.point_coords.size() / 2, 2);
-    mask.stability_score = singlemask_msg.stability_score;
-    mask.crop_box = singlemask_msg.crop_box;
 
     masks.push_back(mask);
   }

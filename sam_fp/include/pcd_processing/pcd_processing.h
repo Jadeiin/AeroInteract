@@ -93,14 +93,11 @@ class pcd_processing {
 
  private:
   struct singlemask {
+    int maskid;
     Eigen::Matrix<int64_t, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>
         segmentation;
     int area;
     std::vector<int32_t> bbox;
-    double predicted_iou;
-    Eigen::Matrix<float, Eigen::Dynamic, 2, Eigen::RowMajor> point_coords;
-    double stability_score;
-    std::vector<int16_t> crop_box;
   };
   /**
    * @brief preprocessing the incoming raw point cloud, subsample and filter it.
