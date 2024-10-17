@@ -247,7 +247,7 @@ std::vector<pcd_processing::singlemask> pcd_processing::maskID_msg_processing(
             singlemask_msg.shape[1]);
     mask.area = singlemask_msg.area;
     mask.bbox = singlemask_msg.bbox;
-
+    ROS_INFO_STREAM("mask info: id=" << singlemask_msg.maskid << ",shape=(" << singlemask_msg.shape[0] << "," << singlemask_msg.shape[1] << ")");
     masks.push_back(mask);
   }
 
