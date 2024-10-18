@@ -181,8 +181,8 @@ bool pcd_processing::extract_bboxes(cloudPtr &input) {
   marker.pose.position.y = transform3.translation().y();
   marker.pose.position.z = transform3.translation().z();
   // Quaternion
-  marker.pose.orientation.y = sin(rollAngle.angle() / 2.0);
-  marker.pose.orientation.w = cos(rollAngle.angle() / 2.0);
+  marker.pose.orientation.y = cos(rollAngle.angle() / 2.0);
+  marker.pose.orientation.w = sin(rollAngle.angle() / 2.0);
   marker.scale.x = bbox.x();
   marker.scale.y = bbox.y();
   marker.scale.z = bbox.z();
