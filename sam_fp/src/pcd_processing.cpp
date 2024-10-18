@@ -92,8 +92,8 @@ bool pcd_processing::cut_point_cloud(cloudPtr &input,
     // Find the bounding box of the mask
     int min_x = mask.bbox[0];
     int min_y = mask.bbox[1];
-    int width = mask.bbox[2];
-    int height = mask.bbox[3];
+    int max_x = mask.bbox[2];
+    int max_y = mask.bbox[3];
 
     int number_of_ones = pcd_processing::countOnes(mask.segmentation);
     ROS_INFO_STREAM("number_of_ones:");
@@ -101,8 +101,8 @@ bool pcd_processing::cut_point_cloud(cloudPtr &input,
 
     int cols = mask.segmentation.cols();
     // Iterate over the points in the bounding box
-    for (int i = min_y; i < min_y + height; ++i) {
-      for (int j = min_x; j < min_x + width; ++j) {
+    for (int i = min_y; i < max_y; ++i) {
+      for (int j = min_x; j < max_x; ++j) {
         // Check if the mask includes this point
         if (mask.segmentation(i, j) == 1) {
           // Calculate the index in the point cloud
