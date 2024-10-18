@@ -2,10 +2,12 @@
 
 # Define the tmux session name
 SESSION="ros"
-export DISPLAY=:1
 
 # Create a new tmux session but do not attach to it
 tmux new-session -d -s $SESSION
+tmux setenv LD_LIBRARY_PATH $LD_LIBRARY_PATH:/root/TensorRT-10.5.0.18/lib
+tmux setenv HF_ENDPOINT https://hf-mirror.com
+tmux setenv DISPLAY :1
 
 # Split the tmux window into four panes
 tmux split-window -h

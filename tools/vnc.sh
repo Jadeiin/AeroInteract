@@ -2,10 +2,10 @@
 
 # Define the tmux session name
 SESSION="vnc"
-export DISPLAY=:1
 
 # Create a new tmux session but do not attach to it
 tmux new-session -d -s $SESSION
+tmux setenv DISPLAY :1
 
 # Split the tmux window into four panes
 tmux split-window -h
