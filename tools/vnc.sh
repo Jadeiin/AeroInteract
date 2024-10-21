@@ -2,6 +2,7 @@
 
 # Define the tmux session name
 SESSION="vnc"
+export DISPLAY=:1
 
 # Create a new tmux session but do not attach to it
 tmux new-session -d -s $SESSION
