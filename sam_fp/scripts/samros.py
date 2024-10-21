@@ -134,7 +134,7 @@ class NanoSAMRos:
         # ros_image = bridge.cv2_to_imgmsg(image, encoding="passthrough")
 
         # the cv image is in rgb8 format
-        ros_image = self.bridge.cv2_to_imgmsg(image, encoding="bgr8")
+        ros_image = self.bridge.cv2_to_imgmsg(image, encoding="rgb8")
         return ros_image
 
     def Pub_mask(self, mask_msg):

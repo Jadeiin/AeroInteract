@@ -190,6 +190,7 @@ bool pcd_processing::extract_bboxes(cloudPtr &input) {
   marker.color.g = 0.0f;
   marker.color.b = 0.0f;
   marker.color.a = 0.5;
+  object_boxes_.markers.clear();
   object_boxes_.markers.push_back(marker);
 
   // library method
