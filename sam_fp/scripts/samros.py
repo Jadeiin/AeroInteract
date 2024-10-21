@@ -23,7 +23,7 @@ class NanoSAMRos:
         )  # TODO: pub np.ndarray related func: convert_msg() and Pub_mask()
         self.img_pub = rospy.Publisher("/sam_img", SensorImage, queue_size=10)
         self.img_sub = rospy.Subscriber(
-            self.image_topic, SensorImage, self.callback, queue_size=1
+            self.image_topic, SensorImage, self.callback, queue_size=10
         )  # TODO: find image topic from Tiago!
         self.search_text = rospy.get_param("search_text", None)
         if len(sys.argv) > 1:

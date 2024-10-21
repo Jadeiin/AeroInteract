@@ -132,7 +132,7 @@ bool pcd_processing::extract_bboxes(cloudPtr &input) {
   // homebrew method
 
   // Downsample the point cloud
-  cloudPtr filtered_input;
+  cloudPtr filtered_input(new cloud);
   pcl::VoxelGrid<point> voxel_grid;
   voxel_grid.setInputCloud(input);
   voxel_grid.setLeafSize(0.01f, 0.01f, 0.01f);
