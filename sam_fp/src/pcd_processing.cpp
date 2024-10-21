@@ -169,7 +169,8 @@ bool pcd_processing::extract_bboxes(cloudPtr &input) {
 
   // Calculate bounding box
   cloudPtr transformed_input(new cloud);
-  pcl::transformPointCloud(*filtered_input, *transformed_input, transform.inverse());
+  pcl::transformPointCloud(*filtered_input, *transformed_input,
+                           transform.inverse());
   pcl::getMinMax3D(*transformed_input, min_pt, max_pt);
   center = (max_pt.getVector3fMap() + min_pt.getVector3fMap()) / 2;
   Eigen::Vector3f bbox = (max_pt.getVector3fMap() - min_pt.getVector3fMap());
@@ -177,28 +178,46 @@ bool pcd_processing::extract_bboxes(cloudPtr &input) {
   transform2.translate(center);
   Eigen::Affine3f transform3 = transform * transform2;
 
-  // Publish bounding box
-  visualization_msgs::Marker marker;
-  marker.header.frame_id = "camera_color_optical_frame";
-  marker.header.stamp = ros::Time::now();
-  marker.ns = "bounding_box";
-  marker.type = visualization_msgs::Marker::CUBE;
-  marker.action = visualization_msgs::Marker::ADD;
-  marker.pose.position.x = transform3.translation().x();
-  marker.pose.position.y = transform3.translation().y();
-  marker.pose.position.z = transform3.translation().z();
+  // Publish bounding box and arrow
+  visualization_msgs::Marker bbox_marker, arrow_marker;
+  bbox_marker.header.frame_id = "camera_color_optical_frame";
+  arrow_marker.header.frame_id = "camera_color_optical_frame";
+  bbox_marker.header.stamp = ros::Time::now();
+  arrow_marker.header.stamp = ros::Time::now();
+  bbox_marker.ns = "bounding_box";
+  arrow_marker.ns = "arrow";
+  bbox_marker.type = visualization_msgs::Marker::CUBE;
+  bbox_marker.action = visualization_msgs::Marker::ADD;
+  arrow_marker.type = visualization_msgs::Marker::ARROW;
+  arrow_marker.action = visualization_msgs::Marker::ADD;
+  bbox_marker.pose.position.x = transform3.translation().x();
+  bbox_marker.pose.position.y = transform3.translation().y();
+  bbox_marker.pose.position.z = transform3.translation().z();
+  arrow_marker.pose.position.x = transform3.translation().x();
+  arrow_marker.pose.position.y = transform3.translation().y();
+  arrow_marker.pose.position.z = transform3.translation().z();
   // Quaternion
-  marker.pose.orientation.y = cos(rollAngle.angle() / 2.0);
-  marker.pose.orientation.w = sin(rollAngle.angle() / 2.0);
-  marker.scale.x = bbox.x();
-  marker.scale.y = bbox.y();
-  marker.scale.z = bbox.z();
-  marker.color.r = 1.0f;
-  marker.color.g = 0.0f;
-  marker.color.b = 0.0f;
-  marker.color.a = 0.5;
+  bbox_marker.pose.orientation.y = cos(rollAngle.angle() / 2.0);
+  bbox_marker.pose.orientation.w = sin(rollAngle.angle() / 2.0);
+  arrow_marker.pose.orientation.y = cos(rollAngle.angle() / 2.0);
+  arrow_marker.pose.orientation.w = sin(rollAngle.angle() / 2.0);
+  bbox_marker.scale.x = bbox.x();
+  bbox_marker.scale.y = bbox.y();
+  bbox_marker.scale.z = bbox.z();
+  arrow_marker.scale.x = 0.5;
+  arrow_marker.scale.y = 0.1;
+  arrow_marker.scale.z = 0.1;
+  bbox_marker.color.r = 1.0f;
+  bbox_marker.color.g = 0.0f;
+  bbox_marker.color.b = 0.0f;
+  bbox_marker.color.a = 0.5;
+  arrow_marker.color.r = 0.0f;
+  arrow_marker.color.g = 1.0f;
+  arrow_marker.color.b = 0.0f;
+  arrow_marker.color.a = 1.0;
   object_boxes_.markers.clear();
-  object_boxes_.markers.push_back(marker);
+  object_boxes_.markers.push_back(bbox_marker);
+  object_boxes_.markers.push_back(arrow_marker);
 
   // library method
   // auto config = YAML::LoadFile(ROOT_PATH "/config/config.yaml")["Cluster"];
