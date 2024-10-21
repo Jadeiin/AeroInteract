@@ -162,7 +162,7 @@ bool pcd_processing::extract_bboxes(cloudPtr &input) {
   // Calculate transform matrix
   Eigen::Vector3f ea =
       (eigenVectorsPCA).eulerAngles(2, 1, 0);  // yaw pitch roll
-  Eigen::AngleAxisf rollAngle(ea[1], Eigen::Vector3f::UnitZ());
+  Eigen::AngleAxisf rollAngle(ea[0], Eigen::Vector3f::UnitY());
   Eigen::Affine3f transform = Eigen::Affine3f::Identity();
   transform.translate(center);
   transform.rotate(rollAngle);
@@ -197,10 +197,15 @@ bool pcd_processing::extract_bboxes(cloudPtr &input) {
   arrow_marker.pose.position.y = transform3.translation().y();
   arrow_marker.pose.position.z = transform3.translation().z();
   // Quaternion
-  bbox_marker.pose.orientation.y = cos(rollAngle.angle() / 2.0);
-  bbox_marker.pose.orientation.w = sin(rollAngle.angle() / 2.0);
-  arrow_marker.pose.orientation.y = cos(rollAngle.angle() / 2.0);
-  arrow_marker.pose.orientation.w = sin(rollAngle.angle() / 2.0);
+  Eigen::Quaternionf quat = Eigen::Quaternionf(transform3.rotation());
+  bbox_marker.pose.orientation.x = quat.x();
+  bbox_marker.pose.orientation.y = quat.y();
+  bbox_marker.pose.orientation.z = quat.z();
+  bbox_marker.pose.orientation.w = quat.w();
+  arrow_marker.pose.orientation.x = quat.x();
+  arrow_marker.pose.orientation.y = quat.y();
+  arrow_marker.pose.orientation.z = quat.z();
+  arrow_marker.pose.orientation.w = quat.w();
   bbox_marker.scale.x = bbox.x();
   bbox_marker.scale.y = bbox.y();
   bbox_marker.scale.z = bbox.z();
