@@ -131,17 +131,24 @@ bool pcd_processing::extract_bboxes(cloudPtr &input) {
   // Implement the logic to extract bounding boxes from the point cloud
   // homebrew method
 
+  // Downsample the point cloud
+  cloudPtr filtered_input;
+  pcl::VoxelGrid<PointT> voxel_grid;
+  voxel_grid.setInputCloud(input);
+  voxel_grid.setLeafSize(0.01f, 0.01f, 0.01f);
+  voxel_grid.filter(*filtered_input);
+
   // Compute centroid and center
   Eigen::Vector4f centroid;
   point min_pt, max_pt;
-  pcl::compute3DCentroid(*input, centroid);
-  pcl::getMinMax3D(*input, min_pt, max_pt);
+  pcl::compute3DCentroid(*filtered_input, centroid);
+  pcl::getMinMax3D(*filtered_input, min_pt, max_pt);
   Eigen::Vector3f center =
       (max_pt.getVector3fMap() + min_pt.getVector3fMap()) / 2;
 
   // Compute principal directions
   Eigen::Matrix3f covariance;
-  pcl::computeCovarianceMatrixNormalized(*input, centroid, covariance);
+  pcl::computeCovarianceMatrixNormalized(*filtered_input, centroid, covariance);
   Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> eigen_solver(
       covariance, Eigen::ComputeEigenvectors);
   Eigen::Matrix3f eigenVectorsPCA = eigen_solver.eigenvectors();
@@ -162,7 +169,7 @@ bool pcd_processing::extract_bboxes(cloudPtr &input) {
 
   // Calculate bounding box
   cloudPtr transformed_input(new cloud);
-  pcl::transformPointCloud(*input, *transformed_input, transform.inverse());
+  pcl::transformPointCloud(*filtered_input, *transformed_input, transform.inverse());
   pcl::getMinMax3D(*transformed_input, min_pt, max_pt);
   center = (max_pt.getVector3fMap() + min_pt.getVector3fMap()) / 2;
   Eigen::Vector3f bbox = (max_pt.getVector3fMap() - min_pt.getVector3fMap());
