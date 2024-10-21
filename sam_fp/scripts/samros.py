@@ -110,6 +110,7 @@ class NanoSAMRos:
     def run_nanosam(self, cv_image):
         results = self.infer(cv_image)
         if results is None:
+            self.img_pub.publish(self.cv2rosimg(cv_image))
             return -1
 
         mask_overlay = (results[1][0, 0].detach().cpu().numpy() > 0).astype(
