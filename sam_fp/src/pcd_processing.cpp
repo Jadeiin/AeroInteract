@@ -6,13 +6,13 @@ bool pcd_processing::initialize(ros::NodeHandle &nh) {
 
   // Initialize ROS subscribers, publishers, and other members
   point_cloud_sub_ =
-      nh.subscribe(pointcloud_topic, 1, &pcd_processing::cloudCallback, this);
+      nh.subscribe(pointcloud_topic, 10, &pcd_processing::cloudCallback, this);
   masks_sub_ =
-      nh.subscribe("/sam_mask", 1, &pcd_processing::masksCallback, this);
+      nh.subscribe("/sam_mask", 10, &pcd_processing::masksCallback, this);
   objects_cloud_pub_ =
-      nh.advertise<sensor_msgs::PointCloud2>("/objects_cloud", 1);
+      nh.advertise<sensor_msgs::PointCloud2>("/objects_cloud", 10);
   object_boxes_pub_ =
-      nh.advertise<visualization_msgs::MarkerArray>("/object_boxes", 1);
+      nh.advertise<visualization_msgs::MarkerArray>("/object_boxes", 10);
   // Initialize pointers
   raw_cloud_.reset(new cloud);
   preprocessed_cloud_.reset(new cloud);
@@ -232,6 +232,9 @@ bool pcd_processing::extract_bboxes(cloudPtr &input) {
   object_boxes_.markers.push_back(arrow_marker);
 
   // library method
+  // 1. use pcl::MomentOfInertiaEstimation class
+  // 2. use CGAL::oriented_bounding_box function
+
   // auto config = YAML::LoadFile(ROOT_PATH "/config/config.yaml")["Cluster"];
   // using ClusterFactory = Factory<pc_utils::Cluster<PXYZ>, const YAML::Node
   // &>; if (auto filter = ClusterFactory::BuildT<std::shared_ptr>(
