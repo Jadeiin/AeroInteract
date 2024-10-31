@@ -27,32 +27,44 @@ void pcd_processing::update(const ros::Time &time) {
 
   if (is_cloud_updated) {
     // Preprocess the raw cloud
+    ros::Time start = ros::Time::now();
     if (!raw_cloud_preprocessing(raw_cloud_, preprocessed_cloud_)) {
       ROS_ERROR("Raw cloud preprocessing failed!");
       return;
     }
+    ros::Time end = ros::Time::now();
+    ROS_INFO_STREAM("Raw cloud preprocessing time: "
+                    << (end - start).toNSec() << " ns");
 
     // Cut the preprocessed cloud //TODO: pass the argument
+    start = ros::Time::now();
     if (!cut_point_cloud(preprocessed_cloud_, processed_masks_,
                          objects_cloud_)) {
       ROS_ERROR("Cutting point cloud failed!");
       return;
-    };
+    }
+    end = ros::Time::now();
+    ROS_INFO_STREAM("Cutting point cloud time: "
+                    << (end - start).toNSec() << " ns");
 
+    start = ros::Time::now();
     if (!extract_bboxes(objects_cloud_)) {
       ROS_ERROR("Extracting bounding boxes failed!");
       return;
-    };
+    }
+    end = ros::Time::now();
+    ROS_INFO_STREAM("Extracting bounding boxes time: "
+                    << (end - start).toNSec() << " ns");
 
     // Publish the objects cloud
     pcl::toROSMsg(*objects_cloud_, cloudmsg_);
-    ROS_INFO_STREAM("raw_cloud_:");
-    ROS_INFO_STREAM(*raw_cloud_);
-    ROS_INFO_STREAM("objects_cloud_:");
-    ROS_INFO_STREAM(*objects_cloud_);
+    // ROS_INFO_STREAM("raw_cloud_:");
+    // ROS_INFO_STREAM(*raw_cloud_);
+    // ROS_INFO_STREAM("objects_cloud_:");
+    // ROS_INFO_STREAM(*objects_cloud_);
     objects_cloud_pub_.publish(cloudmsg_);
-    ROS_INFO_STREAM("object_boxes_:");
-    ROS_INFO_STREAM(object_boxes_);
+    // ROS_INFO_STREAM("object_boxes_:");
+    // ROS_INFO_STREAM(object_boxes_);
     object_boxes_pub_.publish(object_boxes_);
 
     // Reset the flag
@@ -86,8 +98,8 @@ bool pcd_processing::cut_point_cloud(cloudPtr &input,
   objects->points.clear();
 
   // Iterate over each mask
-  ROS_INFO_STREAM("masks:");
-  ROS_INFO_STREAM(masks.size());
+  // ROS_INFO_STREAM("masks:");
+  // ROS_INFO_STREAM(masks.size());
   for (const auto &mask : masks) {
     // Find the bounding box of the mask
     int min_x = mask.bbox[0];
@@ -95,9 +107,9 @@ bool pcd_processing::cut_point_cloud(cloudPtr &input,
     int max_x = mask.bbox[2];
     int max_y = mask.bbox[3];
 
-    int number_of_ones = pcd_processing::countOnes(mask.segmentation);
-    ROS_INFO_STREAM("number_of_ones:");
-    ROS_INFO_STREAM(number_of_ones);
+    // int number_of_ones = pcd_processing::countOnes(mask.segmentation);
+    // ROS_INFO_STREAM("number_of_ones:");
+    // ROS_INFO_STREAM(number_of_ones);
 
     int cols = mask.segmentation.cols();
     // Iterate over the points in the bounding box
@@ -135,7 +147,7 @@ bool pcd_processing::extract_bboxes(cloudPtr &input) {
   cloudPtr filtered_input(new cloud);
   pcl::VoxelGrid<point> voxel_grid;
   voxel_grid.setInputCloud(input);
-  voxel_grid.setLeafSize(0.01f, 0.01f, 0.01f);
+  voxel_grid.setLeafSize(0.02f, 0.02f, 0.02f);
   voxel_grid.filter(*filtered_input);
 
   // Remove outliers
