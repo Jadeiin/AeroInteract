@@ -4,6 +4,7 @@ Follow the install instructions above
 ### NanoOWL + NanoSAM envirnoment configuration
 
 Install PyTorch, TensorRT, transformers, torch2trt, NanoOWL, NanoSAM
+torchvision, matplotlib, onnx, opencv (invisible requirements)
 
 ```
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/root/TensorRT-$VERSION/lib
