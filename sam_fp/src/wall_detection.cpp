@@ -50,6 +50,9 @@ void wall_detection::cloudCallback(
   marker.color.g = 0.0f;
   marker.color.b = 1.0f;
   marker.color.a = 1.0;
+  marker.scale.x = 0.1;
+  marker.scale.y = 0.1;
+  marker.scale.z = 0.1;
   wall_marker_pub_.publish(marker);
 
   return;
