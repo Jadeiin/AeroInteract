@@ -1,6 +1,7 @@
 #include "wall_detection/wall_detection.h"
 
-void wall_detection::cloudCallback(const sensor_msgs::PointCloud2ConstPtr &msg) {
+void wall_detection::cloudCallback(
+    const sensor_msgs::PointCloud2ConstPtr &msg) {
   pcl::fromROSMsg(*msg, *raw_cloud_);
   pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients);
   pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
@@ -12,7 +13,7 @@ void wall_detection::cloudCallback(const sensor_msgs::PointCloud2ConstPtr &msg) 
   seg.setModelType(pcl::SACMODEL_PLANE);
   seg.setMethodType(pcl::SAC_RANSAC);
   seg.setDistanceThreshold(0.01);
-  seg.setInputCloud(*raw_cloud_);
+  seg.setInputCloud(*raw_cloud_.makeShared());
   seg.segment(*inliers, *coefficients);
   if (inliers->indices.size() == 0) {
     ROS_ERROR("Could not estimate a planar model for the given dataset.");
@@ -35,10 +36,14 @@ void wall_detection::cloudCallback(const sensor_msgs::PointCloud2ConstPtr &msg) 
   marker.ns = "wall_arrow";
   marker.type = visualization_msgs::Marker::ARROW;
   marker.action = visualization_msgs::Marker::ADD;
-  Eigen::Vector3f start(centroid[0], centroid[1], centroid[2]);
-  Eigen::Vector3f end(centroid[0] + coefficients[0],
-                      centroid[1] + coefficients[1],
-                      centroid[2] + coefficients[2]);
+  geometry_msgs::Point start;
+  start.x = centroid[0];
+  start.y = centroid[1];
+  start.z = centroid[2];
+  geometry_msgs::Point end;
+  end.x = centroid[0] + coefficients->values[0];
+  end.y = centroid[1] + coefficients->values[1];
+  end.z = centroid[2] + coefficients->values[2];
   marker.points.push_back(start);
   marker.points.push_back(end);
   marker.color.r = 0.0f;
