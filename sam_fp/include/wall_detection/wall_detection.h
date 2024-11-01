@@ -24,10 +24,14 @@ class wall_detection {
       : pointcloud_topic(topic) {
     point_cloud_sub_ =
         nh_.subscribe(pointcloud_topic, 10, &wall_detection::cloudCallback, this);
+    object_boxes_sub_ =
+        nh_.subscribe("/object_boxes", 10, &wall_detection::obbCallback, this);
     wall_points_pub_ =
         nh_.advertise<sensor_msgs::PointCloud2>("/wall_points", 10);
     wall_marker_pub_ =
         nh_.advertise<visualization_msgs::Marker>("/wall_marker", 10);
+    object_angle_pub_ =
+        nh_.advertise<visualization_msgs::Marker>("/object_angle", 10);
     raw_cloud_.reset(new cloud);
     wall_cloud_.reset(new cloud);
   }
@@ -36,6 +40,7 @@ class wall_detection {
 
  private:
   void cloudCallback(const sensor_msgs::PointCloud2ConstPtr &msg);
+  void obbCallback(const visualization_msgs::MarkerArrayConstPtr &msg);
 
   ros::NodeHandle nh_;
   ros::Subscriber point_cloud_sub_;
@@ -45,6 +50,8 @@ class wall_detection {
   cloudPtr raw_cloud_;
   cloudPtr wall_cloud_;
   sensor_msgs::PointCloud2 cloudmsg_;
+  visualization_msgs::Marker wall_marker_;
+  visualization_msgs::Marker object_angle_;
   const std::string pointcloud_topic;
 };
 

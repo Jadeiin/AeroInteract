@@ -16,11 +16,14 @@ void wall_detection::cloudCallback(
   seg.setInputCloud(raw_cloud_);
   seg.segment(*inliers, *coefficients);
   if (inliers->indices.size() == 0) {
-    ROS_ERROR("Could not estimate a planar model for the given dataset (size = 0).");
+    ROS_ERROR(
+        "Could not estimate a planar model for the given dataset (size = 0).");
     return;
   }
   if (inliers->indices.size() < 20000) {
-    ROS_ERROR("Could not estimate a planar model for the given dataset (size too small).");
+    ROS_ERROR(
+        "Could not estimate a planar model for the given dataset (size too "
+        "small).");
     return;
   }
   pcl::copyPointCloud(*raw_cloud_, inliers->indices, *wall_cloud_);
@@ -30,12 +33,11 @@ void wall_detection::cloudCallback(
   wall_points_pub_.publish(cloudmsg_);
 
   // Publish arrow
-  visualization_msgs::Marker marker;
-  marker.header.frame_id = "camera_color_optical_frame";
-  marker.header.stamp = ros::Time::now();
-  marker.ns = "wall_arrow";
-  marker.type = visualization_msgs::Marker::ARROW;
-  marker.action = visualization_msgs::Marker::ADD;
+  wall_marker_.header.frame_id = "camera_color_optical_frame";
+  wall_marker_.header.stamp = ros::Time::now();
+  wall_marker_.ns = "wall_arrow";
+  wall_marker_.type = visualization_msgs::Marker::ARROW;
+  wall_marker_.action = visualization_msgs::Marker::ADD;
   geometry_msgs::Point start;
   start.x = centroid[0];
   start.y = centroid[1];
@@ -44,16 +46,72 @@ void wall_detection::cloudCallback(
   end.x = centroid[0] + coefficients->values[0];
   end.y = centroid[1] + coefficients->values[1];
   end.z = centroid[2] + coefficients->values[2];
-  marker.points.push_back(start);
-  marker.points.push_back(end);
-  marker.color.r = 0.0f;
-  marker.color.g = 0.0f;
-  marker.color.b = 1.0f;
-  marker.color.a = 1.0;
-  marker.scale.x = 0.1;
-  marker.scale.y = 0.1;
-  marker.scale.z = 0.1;
-  wall_marker_pub_.publish(marker);
+  wall_marker_.points.push_back(start);
+  wall_marker_.points.push_back(end);
+  wall_marker_.color.r = 0.0f;
+  wall_marker_.color.g = 0.0f;
+  wall_marker_.color.b = 1.0f;
+  wall_marker_.color.a = 1.0;
+  wall_marker_.scale.x = 0.1;
+  wall_marker_.scale.y = 0.1;
+  wall_marker_.scale.z = 0.1;
+  wall_marker_pub_.publish(wall_marker_);
 
+  return;
+}
+
+void wall_detection::obbCallback(
+    const visualization_msgs::MarkerArrayConstPtr &msg) {
+  // TODO: Handle multiple OBB
+  visualization_msgs::Marker bbox_marker = msg->markers[0];  // Only one OBB
+  Eigen::Vector3f bbox_centroid(bbox_marker.pose.position.x, bbox_marker.pose.position.y,
+                                bbox_marker.pose.position.z);
+  Eigen::Quaternionf bbox_quat(
+      bbox_marker.pose.orientation.w, bbox_marker.pose.orientation.x,
+      bbox_marker.pose.orientation.y, bbox_marker.pose.orientation.z);
+  Eigen::Vector3f bbox_vec =
+      bbox_quat._transformVector(Eigen::Vector3d::UnitX());
+  Eigen::Vector3f wall_centroid(wall_marker_.points[0].x, wall_marker_.points[0].y,
+                                wall_marker_.points[0].z);
+  Eigen::Vector3f wall_end(wall_marker_.points[1].x, wall_marker_.points[1].y,
+                           wall_marker_.points[1].z);
+  Eigen::Vector3f wall_vec = wall_end - wall_centroid;
+  // // method 1: directly calculate angle between two vectors (suppose wall and
+  // object are) double angle = std::acos(wall_vec.dot(bbox_vec) /
+  // (wall_vec.norm() * bbox_vec.norm()));
+  // // make sure the angle is in the range of [0, pi/2]
+  // if (angle > M_PI / 2) {
+  //     angle = M_PI - angle;
+  // }
+  // // method 2: calcualte euler angles seperately and then combine
+  // Eigen::Matrix3f bbox_rotation_matrix = bbox_quat.toRotationMatrix();
+  // Eigen::Vector3f bbox_euler_angles = rotation_matrix.eulerAngles(2, 1, 0);
+  // method 3: calculate quaternion from two vectors
+  Eigen::Vector3f euler_angles =
+      Eigen::Quaternionf::FromTwoVectors(wall_vec, bbox_vec)
+          .toRotationMatrix()
+          .eulerAngles(2, 1, 0);
+  double angle = euler_angles[2];
+  if (angle > M_PI / 2) {
+    angle = angle - M_PI / 2;
+  }
+
+  object_angle_.header.frame_id = "camera_color_optical_frame";
+  object_angle_.header.stamp = ros::Time::now();
+  object_angle_.ns = "object_angle";
+  object_angle_.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
+  object_angle_.action = visualization_msgs::Marker::ADD;
+  object_angle_.pose.position.x = bbox_centroid[0];
+  object_angle_.pose.position.y = bbox_centroid[1];
+  object_angle_.pose.position.z = bbox_centroid[2];
+  object_angle_.color.r = 1.0f;
+  object_angle_.color.g = 1.0f;
+  object_angle_.color.b = 1.0f;
+  object_angle_.color.a = 1.0;
+  std::stringstream ss;
+  ss << std::fixed << std::setprecision(2) << (angle * 180 / M_PI);
+  object_angle_.text = ss.str() + "°";
+  object_angle_.scale.z = 0.5;
+  object_angle_pub_.publish(object_angle_);
   return;
 }
