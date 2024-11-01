@@ -6,14 +6,14 @@ void wall_detection::cloudCallback(
   pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients);
   pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
   // Create the segmentation object
-  pcl::SACSegmentation<pcl::PointXYZ> seg;
+  pcl::SACSegmentation<point> seg;
   // Optional
   seg.setOptimizeCoefficients(true);
   // Mandatory
   seg.setModelType(pcl::SACMODEL_PLANE);
   seg.setMethodType(pcl::SAC_RANSAC);
   seg.setDistanceThreshold(0.01);
-  seg.setInputCloud(*raw_cloud_.makeShared());
+  seg.setInputCloud(raw_cloud_);
   seg.segment(*inliers, *coefficients);
   if (inliers->indices.size() == 0) {
     ROS_ERROR("Could not estimate a planar model for the given dataset.");
