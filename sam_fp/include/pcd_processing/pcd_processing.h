@@ -49,11 +49,6 @@
  *
  */
 class pcd_processing {
- private:
-  const std::string pointcloud_topic;
-  const std::string base_frame;
-  bool is_cloud_updated;  //!< new pointcloud recieved
-
  public:
   // Alias:
   typedef pcl::PointXYZRGB point;  // Point Type (vector type)
@@ -149,6 +144,9 @@ class pcd_processing {
                                     Eigen::RowMajor> &matrix);
 
   // Private variables
+  const std::string pointcloud_topic;
+  const std::string base_frame;
+  bool is_cloud_updated;  //!< new pointcloud recieved
 
   ros::Subscriber point_cloud_sub_;   //!< Subscriber to the PointCloud data
   ros::Publisher objects_cloud_pub_;  //!< Publish objects point cloud

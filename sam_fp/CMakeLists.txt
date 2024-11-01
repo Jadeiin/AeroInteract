@@ -130,6 +130,7 @@ include_directories(
 # Declare a C++ library
 add_library(${PROJECT_NAME}
   src/pcd_processing.cpp
+  src/wall_detection.cpp
 )
 
 ## Add cmake target dependencies of the library
@@ -143,6 +144,10 @@ add_library(${PROJECT_NAME}
 add_executable(pcd_processing_node 
   src/pcd_processing_node.cpp
 
+)
+
+add_executable(wall_detection_node
+  src/wall_detection_node.cpp
 )
 
 ## Rename C++ executable without prefix
@@ -166,6 +171,12 @@ target_link_libraries(pcd_processing_node
   ${catkin_LIBRARIES}
   ${PCL_LIBRARIES}
   ${OpenCV_LIBRARIES}
+  ${PROJECT_NAME}
+)
+
+target_link_libraries(wall_detection_node
+  ${catkin_LIBRARIES}
+  ${PCL_LIBRARIES}
   ${PROJECT_NAME}
 )
 
