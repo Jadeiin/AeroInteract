@@ -12,7 +12,7 @@ void wall_detection::cloudCallback(const sensor_msgs::PointCloud2ConstPtr &msg) 
   seg.setModelType(pcl::SACMODEL_PLANE);
   seg.setMethodType(pcl::SAC_RANSAC);
   seg.setDistanceThreshold(0.01);
-  seg.setInputCloud(raw_cloud_);
+  seg.setInputCloud(*raw_cloud_);
   seg.segment(*inliers, *coefficients);
   if (inliers->indices.size() == 0) {
     ROS_ERROR("Could not estimate a planar model for the given dataset.");

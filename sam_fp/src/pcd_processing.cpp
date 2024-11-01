@@ -147,7 +147,7 @@ bool pcd_processing::extract_bboxes(cloudPtr &input) {
   cloudPtr filtered_input(new cloud);
   pcl::VoxelGrid<point> voxel_grid;
   voxel_grid.setInputCloud(input);
-  voxel_grid.setLeafSize(0.02f, 0.02f, 0.02f);
+  voxel_grid.setLeafSize(0.02f, 0.02f, 0.02f); // TODO: change to param
   voxel_grid.filter(*filtered_input);
 
   // Remove outliers
@@ -204,7 +204,7 @@ bool pcd_processing::extract_bboxes(cloudPtr &input) {
   bbox_marker.header.stamp = ros::Time::now();
   arrow_marker.header.stamp = ros::Time::now();
   bbox_marker.ns = "bounding_box";
-  arrow_marker.ns = "arrow";
+  arrow_marker.ns = "bounding_box_arrow";
   bbox_marker.type = visualization_msgs::Marker::CUBE;
   bbox_marker.action = visualization_msgs::Marker::ADD;
   arrow_marker.type = visualization_msgs::Marker::ARROW;

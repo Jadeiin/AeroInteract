@@ -21,7 +21,7 @@ class wall_detection {
       cloudPtr;  // Cloud Pointer Type
 
   wall_detection(const std::string &topic = "/camera/depth_registered/points")
-      : pointcloud_topic(topic), is_cloud_updated(false) {
+      : pointcloud_topic(topic) {
     point_cloud_sub_ =
         nh_.subscribe(pointcloud_topic, 10, &wall_detection::cloudCallback, this);
     wall_points_pub_ =
