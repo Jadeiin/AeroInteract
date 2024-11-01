@@ -40,10 +40,10 @@ class wall_detection {
 
  private:
   void cloudCallback(const sensor_msgs::PointCloud2ConstPtr &msg);
-  void obbCallback(const visualization_msgs::MarkerArrayConstPtr &msg);
-
+  void obbCallback(const visualization_msgs::MarkerArray::ConstPtr &msg);
   ros::NodeHandle nh_;
   ros::Subscriber point_cloud_sub_;
+  ros::Subscriber object_boxes_sub_;
   ros::Publisher wall_points_pub_;
   ros::Publisher wall_marker_pub_;
   ros::Publisher object_angle_pub_;
