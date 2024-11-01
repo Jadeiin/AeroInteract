@@ -46,6 +46,7 @@ class wall_detection {
   ros::Subscriber point_cloud_sub_;
   ros::Publisher wall_points_pub_;
   ros::Publisher wall_marker_pub_;
+  ros::Publisher object_angle_pub_;
 
   cloudPtr raw_cloud_;
   cloudPtr wall_cloud_;
