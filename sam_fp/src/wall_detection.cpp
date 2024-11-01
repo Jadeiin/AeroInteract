@@ -61,7 +61,7 @@ void wall_detection::cloudCallback(
 }
 
 void wall_detection::obbCallback(
-    const visualization_msgs::MarkerArray::ConstPtr &msg) {
+    const visualization_msgs::MarkerArrayConstPtr &msg) {
   // TODO: Handle multiple OBB
   visualization_msgs::Marker bbox_marker = msg->markers[0];  // Only one OBB
   Eigen::Vector3f bbox_centroid(bbox_marker.pose.position.x,
@@ -71,7 +71,7 @@ void wall_detection::obbCallback(
       bbox_marker.pose.orientation.w, bbox_marker.pose.orientation.x,
       bbox_marker.pose.orientation.y, bbox_marker.pose.orientation.z);
   Eigen::Vector3f bbox_vec =
-      bbox_quat._transformVector(Eigen::Vector3d::UnitX());
+      bbox_quat._transformVector(Eigen::Vector3f::UnitX());
   Eigen::Vector3f wall_centroid(wall_marker_.points[0].x,
                                 wall_marker_.points[0].y,
                                 wall_marker_.points[0].z);

@@ -10,6 +10,7 @@
 #include <sensor_msgs/PointCloud2.h>
 #include <tf/tf.h>
 #include <visualization_msgs/Marker.h>
+#include <visualization_msgs/MarkerArray.h>
 
 class wall_detection {
  public:
@@ -40,7 +41,7 @@ class wall_detection {
 
  private:
   void cloudCallback(const sensor_msgs::PointCloud2ConstPtr &msg);
-  void obbCallback(const visualization_msgs::MarkerArray::ConstPtr &msg);
+  void obbCallback(const visualization_msgs::MarkerArrayConstPtr &msg);
   ros::NodeHandle nh_;
   ros::Subscriber point_cloud_sub_;
   ros::Subscriber object_boxes_sub_;
