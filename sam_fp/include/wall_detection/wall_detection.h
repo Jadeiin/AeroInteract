@@ -29,6 +29,7 @@ class wall_detection {
     wall_marker_pub_ =
         nh_.advertise<visualization_msgs::Marker>("/wall_marker", 10);
     raw_cloud_.reset(new cloud);
+    wall_cloud_.reset(new cloud);
   }
 
   ~wall_detection() {}
