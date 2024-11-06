@@ -21,7 +21,7 @@ class wall_detection {
   typedef pcl::PointCloud<pcl::PointXYZRGB>::Ptr
       cloudPtr;  // Cloud Pointer Type
 
-  wall_detection(const std::string &topic = "/camera/depth_registered/points")
+  wall_detection(const std::string &topic = "/background_cloud")
       : pointcloud_topic(topic) {
     point_cloud_sub_ =
         nh_.subscribe(pointcloud_topic, 10, &wall_detection::cloudCallback, this);

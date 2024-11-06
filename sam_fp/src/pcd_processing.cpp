@@ -11,12 +11,15 @@ bool pcd_processing::initialize(ros::NodeHandle &nh) {
       nh.subscribe("/sam_mask", 10, &pcd_processing::masksCallback, this);
   objects_cloud_pub_ =
       nh.advertise<sensor_msgs::PointCloud2>("/objects_cloud", 10);
+  background_cloud_pub_ =
+      nh.advertise<sensor_msgs::PointCloud2>("/background_cloud", 10);
   object_boxes_pub_ =
       nh.advertise<visualization_msgs::MarkerArray>("/object_boxes", 10);
   // Initialize pointers
   raw_cloud_.reset(new cloud);
   preprocessed_cloud_.reset(new cloud);
   objects_cloud_.reset(new cloud);
+  background_cloud_.reset(new cloud);
   latest_maskID_msg_.reset(new masks_msgs::maskID);
   return true;  // Return true if initialization is successful
 }
@@ -33,19 +36,19 @@ void pcd_processing::update(const ros::Time &time) {
       return;
     }
     ros::Time end = ros::Time::now();
-    ROS_INFO_STREAM("Raw cloud preprocessing time: "
-                    << (end - start).toNSec() << " ns");
+    ROS_INFO_STREAM("Raw cloud preprocessing time: " << (end - start).toNSec()
+                                                     << " ns");
 
     // Cut the preprocessed cloud //TODO: pass the argument
     start = ros::Time::now();
-    if (!cut_point_cloud(preprocessed_cloud_, processed_masks_,
-                         objects_cloud_)) {
+    if (!cut_point_cloud(preprocessed_cloud_, processed_masks_, objects_cloud_,
+                         background_cloud_)) {
       ROS_ERROR("Cutting point cloud failed!");
       return;
     }
     end = ros::Time::now();
-    ROS_INFO_STREAM("Cutting point cloud time: "
-                    << (end - start).toNSec() << " ns");
+    ROS_INFO_STREAM("Cutting point cloud time: " << (end - start).toNSec()
+                                                 << " ns");
 
     start = ros::Time::now();
     if (!extract_bboxes(objects_cloud_)) {
@@ -53,8 +56,8 @@ void pcd_processing::update(const ros::Time &time) {
       return;
     }
     end = ros::Time::now();
-    ROS_INFO_STREAM("Extracting bounding boxes time: "
-                    << (end - start).toNSec() << " ns");
+    ROS_INFO_STREAM("Extracting bounding boxes time: " << (end - start).toNSec()
+                                                       << " ns");
 
     // Publish the objects cloud
     pcl::toROSMsg(*objects_cloud_, cloudmsg_);
@@ -63,6 +66,8 @@ void pcd_processing::update(const ros::Time &time) {
     // ROS_INFO_STREAM("objects_cloud_:");
     // ROS_INFO_STREAM(*objects_cloud_);
     objects_cloud_pub_.publish(cloudmsg_);
+    pcl::toROSMSG(*background_cloud_, cloudmsg_);
+    background_cloud_pub_.publish(cloudmsg_);
     // ROS_INFO_STREAM("object_boxes_:");
     // ROS_INFO_STREAM(object_boxes_);
     object_boxes_pub_.publish(object_boxes_);
@@ -87,7 +92,7 @@ bool pcd_processing::raw_cloud_preprocessing(cloudPtr &input,
 // Cut point cloud
 bool pcd_processing::cut_point_cloud(cloudPtr &input,
                                      const std::vector<singlemask> &masks,
-                                     cloudPtr &objects) {
+                                     cloudPtr &objects, cloudPtr &background) {
   // Implement the logic to cut the point cloud using masks
   // Point Cloud frame_id: camera_color_optical_frame
   // image_raw frame_id: camera_color_optical_frame
@@ -111,6 +116,8 @@ bool pcd_processing::cut_point_cloud(cloudPtr &input,
     // ROS_INFO_STREAM("number_of_ones:");
     // ROS_INFO_STREAM(number_of_ones);
 
+    pcl::ExtractIndices<point> extract;
+    pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
     int cols = mask.segmentation.cols();
     // Iterate over the points in the bounding box
     for (int i = min_y; i < max_y; ++i) {
@@ -120,12 +127,20 @@ bool pcd_processing::cut_point_cloud(cloudPtr &input,
           // Calculate the index in the point cloud
           int index = i * cols + j;
           if (index < input->points.size()) {
-            // Add the point to the output cloud
-            objects->points.push_back(input->points[index]);
+            // Add the point to the inliers list
+            inliers->indices.push_back(index);
           }
         }
       }
     }
+    // Extract the points from the object cloud
+    extract.setInputCloud(input);
+    extract.setIndices(inliers);
+    extract.setNegative(false);
+    extract.filter(*objects);
+    // Extract the points from the background cloud
+    extract.setNegative(true);
+    extract.filter(*background);
   }
   objects->width = objects->points.size();
   objects->height = 1;  // Setting height to 1 implies the cloud is unorganized
@@ -147,7 +162,7 @@ bool pcd_processing::extract_bboxes(cloudPtr &input) {
   cloudPtr filtered_input(new cloud);
   pcl::VoxelGrid<point> voxel_grid;
   voxel_grid.setInputCloud(input);
-  voxel_grid.setLeafSize(0.02f, 0.02f, 0.02f); // TODO: change to param
+  voxel_grid.setLeafSize(0.02f, 0.02f, 0.02f);  // TODO: change to param
   voxel_grid.filter(*filtered_input);
 
   // Remove outliers

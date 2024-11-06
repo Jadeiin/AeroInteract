@@ -148,13 +148,15 @@ class pcd_processing {
   const std::string base_frame;
   bool is_cloud_updated;  //!< new pointcloud recieved
 
-  ros::Subscriber point_cloud_sub_;   //!< Subscriber to the PointCloud data
-  ros::Publisher objects_cloud_pub_;  //!< Publish objects point cloud
-  ros::Subscriber masks_sub_;         //!< Subscriber to the masks data
-  ros::Publisher object_boxes_pub_;   //!< Publish object bounding boxes
-  cloudPtr raw_cloud_;                //!< Internal raw point cloud
-  cloudPtr preprocessed_cloud_;       //!< Internal preprocessed cloud
-  cloudPtr objects_cloud_;            //!< Internal objects point cloud
+  ros::Subscriber point_cloud_sub_;      //!< Subscriber to the PointCloud data
+  ros::Publisher objects_cloud_pub_;     //!< Publish objects point cloud
+  ros::Publisher background_cloud_pub_;  //!< Publish background point cloud
+  ros::Subscriber masks_sub_;            //!< Subscriber to the masks data
+  ros::Publisher object_boxes_pub_;      //!< Publish object bounding boxes
+  cloudPtr raw_cloud_;                   //!< Internal raw point cloud
+  cloudPtr preprocessed_cloud_;          //!< Internal preprocessed cloud
+  cloudPtr objects_cloud_;               //!< Internal objects point cloud
+  cloudPtr background_cloud_;            //!< Internal background point cloud
   masks_msgs::maskID::Ptr
       latest_maskID_msg_;              //!< Internal latest maskID message
   sensor_msgs::PointCloud2 cloudmsg_;  //!< save msg to cloudmsg_
