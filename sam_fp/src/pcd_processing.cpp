@@ -66,7 +66,7 @@ void pcd_processing::update(const ros::Time &time) {
     // ROS_INFO_STREAM("objects_cloud_:");
     // ROS_INFO_STREAM(*objects_cloud_);
     objects_cloud_pub_.publish(cloudmsg_);
-    pcl::toROSMSG(*background_cloud_, cloudmsg_);
+    pcl::toROSMsg(*background_cloud_, cloudmsg_);
     background_cloud_pub_.publish(cloudmsg_);
     // ROS_INFO_STREAM("object_boxes_:");
     // ROS_INFO_STREAM(object_boxes_);

@@ -20,7 +20,7 @@ void wall_detection::cloudCallback(
         "Could not estimate a planar model for the given dataset (size = 0).");
     return;
   }
-  if (inliers->indices.size() < 20000) {
+  if (inliers->indices.size() < 10000) {
     ROS_ERROR(
         "Could not estimate a planar model for the given dataset (size too "
         "small).");
