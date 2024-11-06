@@ -115,7 +115,7 @@ class pcd_processing {
    * @return false failure
    */
   bool cut_point_cloud(cloudPtr &input, const std::vector<singlemask> &masks,
-                       cloudPtr &objects);
+                       cloudPtr &objects, cloudPtr &background);
 
   /**
    * @brief extract bboxes from the point cloud
