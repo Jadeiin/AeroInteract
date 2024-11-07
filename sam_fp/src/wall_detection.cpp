@@ -3,6 +3,10 @@
 void wall_detection::cloudCallback(
     const sensor_msgs::PointCloud2ConstPtr &msg) {
   pcl::fromROSMsg(*msg, *raw_cloud_);
+  if (raw_cloud_->size() == 0) {
+    ROS_ERROR("Empty pointcloud received.");
+    return;
+  }
   pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients);
   pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
   // Create the segmentation object
@@ -63,6 +67,10 @@ void wall_detection::cloudCallback(
 void wall_detection::obbCallback(
     const visualization_msgs::MarkerArrayConstPtr &msg) {
   // TODO: Handle multiple OBB
+  if (wall_marker_.points.size() == 0) {
+    ROS_ERROR("Wall marker not produced.");
+    return;
+  }
   visualization_msgs::Marker bbox_marker = msg->markers[0];  // Only one OBB
   Eigen::Vector3f bbox_centroid(bbox_marker.pose.position.x,
                                 bbox_marker.pose.position.y,
@@ -94,9 +102,10 @@ void wall_detection::obbCallback(
           .toRotationMatrix()
           .eulerAngles(2, 1, 0);
   double angle = euler_angles[2];
-  if (angle > M_PI / 2) {
+  if (angle > M_PI / 2)
     angle = angle - M_PI / 2;
-  }
+  else if (angle < -M_PI / 2)
+    angle = angle + M_PI / 2;
 
   object_angle_.header.frame_id = "camera_color_optical_frame";
   object_angle_.header.stamp = ros::Time::now();

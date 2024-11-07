@@ -15,7 +15,6 @@ find_package(catkin REQUIRED COMPONENTS
   cv_bridge
   masks_msgs
 )
-find_package(OpenCV REQUIRED)
 find_package(PCL REQUIRED)
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -122,7 +121,6 @@ catkin_package(
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
-  ${OpenCV_INCLUDE_DIRS}
   ${PCL_INCLUDE_DIRS}
   masks_msgs
 )
@@ -170,7 +168,6 @@ add_executable(wall_detection_node
 target_link_libraries(pcd_processing_node
   ${catkin_LIBRARIES}
   ${PCL_LIBRARIES}
-  ${OpenCV_LIBRARIES}
   ${PROJECT_NAME}
 )
 
