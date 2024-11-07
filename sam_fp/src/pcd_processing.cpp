@@ -212,6 +212,9 @@ bool pcd_processing::extract_bboxes(cloudPtr &input) {
   Eigen::Affine3f transform2 = Eigen::Affine3f::Identity();
   transform2.translate(center);
   Eigen::Affine3f transform3 = transform * transform2;
+  // Rotate 90
+  Eigen::Affine3f transform4 = transform3 * Eigen::AngleAxisf(
+      M_PI / 2, Eigen::Vector3f::UnitY());
 
   // Publish bounding box and arrow
   visualization_msgs::Marker bbox_marker, arrow_marker;
@@ -233,14 +236,15 @@ bool pcd_processing::extract_bboxes(cloudPtr &input) {
   arrow_marker.pose.position.z = transform3.translation().z();
   // Quaternion
   Eigen::Quaternionf quat = Eigen::Quaternionf(transform3.rotation());
+  Eigen::Quaternionf quat1 = Eigen::Quaternionf(transform4.rotation());
   bbox_marker.pose.orientation.x = quat.x();
   bbox_marker.pose.orientation.y = quat.y();
   bbox_marker.pose.orientation.z = quat.z();
   bbox_marker.pose.orientation.w = quat.w();
-  arrow_marker.pose.orientation.x = quat.x();
-  arrow_marker.pose.orientation.y = quat.y();
-  arrow_marker.pose.orientation.z = quat.z();
-  arrow_marker.pose.orientation.w = quat.w();
+  arrow_marker.pose.orientation.x = quat1.x();
+  arrow_marker.pose.orientation.y = quat1.y();
+  arrow_marker.pose.orientation.z = quat1.z();
+  arrow_marker.pose.orientation.w = quat1.w();
   bbox_marker.scale.x = bbox.x();
   bbox_marker.scale.y = bbox.y();
   bbox_marker.scale.z = bbox.z();
