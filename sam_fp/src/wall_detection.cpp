@@ -37,6 +37,7 @@ void wall_detection::cloudCallback(
   wall_points_pub_.publish(cloudmsg_);
 
   // Publish arrow
+  wall_marker_.points.clear();
   wall_marker_.header.frame_id = "camera_color_optical_frame";
   wall_marker_.header.stamp = ros::Time::now();
   wall_marker_.ns = "wall_arrow";
@@ -79,13 +80,17 @@ void wall_detection::obbCallback(
       bbox_marker.pose.orientation.w, bbox_marker.pose.orientation.x,
       bbox_marker.pose.orientation.y, bbox_marker.pose.orientation.z);
   Eigen::Vector3f bbox_vec =
-      bbox_quat._transformVector(Eigen::Vector3f::UnitX());
+      bbox_quat._transformVector(Eigen::Vector3f::UnitX());  //? UnitX
   Eigen::Vector3f wall_centroid(wall_marker_.points[0].x,
                                 wall_marker_.points[0].y,
                                 wall_marker_.points[0].z);
   Eigen::Vector3f wall_end(wall_marker_.points[1].x, wall_marker_.points[1].y,
                            wall_marker_.points[1].z);
   Eigen::Vector3f wall_vec = wall_end - wall_centroid;
+  // make sure two vectors are directed into same way
+  if (wall_vec.dot(bbox_vec) < 0) {
+    bbox_vec = -bbox_vec;
+  }
   // // method 1: directly calculate angle between two vectors (suppose wall and
   // object are) double angle = std::acos(wall_vec.dot(bbox_vec) /
   // (wall_vec.norm() * bbox_vec.norm()));
@@ -101,11 +106,17 @@ void wall_detection::obbCallback(
       Eigen::Quaternionf::FromTwoVectors(wall_vec, bbox_vec)
           .toRotationMatrix()
           .eulerAngles(2, 1, 0);
+  ROS_INFO_STREAM("Wall vector: " << wall_vec);
+  ROS_INFO_STREAM("Bbox vector: " << bbox_vec);
+  ROS_INFO_STREAM("Euler angles: " << euler_angles);
   double angle = euler_angles[2];
-  if (angle > M_PI / 2)
+  //! FIXME: make sure the angle is in the range of [0, pi/2] and correct
+  if (angle < 0) {
+    angle += M_PI;
+  }
+  if (angle > M_PI / 2) {
     angle = angle - M_PI / 2;
-  else if (angle < -M_PI / 2)
-    angle = angle + M_PI / 2;
+  }
 
   object_angle_.header.frame_id = "camera_color_optical_frame";
   object_angle_.header.stamp = ros::Time::now();
