@@ -55,6 +55,10 @@ class wall_detection {
   visualization_msgs::Marker wall_marker_;
   visualization_msgs::Marker object_angle_;
   const std::string pointcloud_topic;
+
+  // Transformation
+  tf::TransformListener
+      tf_listener_;  //!< Access ros tf tree to get frame transformations
 };
 
 #endif

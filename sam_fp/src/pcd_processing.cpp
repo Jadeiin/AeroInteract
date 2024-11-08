@@ -148,9 +148,9 @@ bool pcd_processing::cut_point_cloud(cloudPtr &input,
       false;  // Set to false if there might be NaN or invalid points
 
   // Remove NaN points from the processed cloud
-  //std::vector<int> indices;
-  //pcl::removeNaNFromPointCloud(*objects, *objects, indices);
-  //pcl::removeNaNFromPointCloud(*background, *background, indices);
+  // std::vector<int> indices;
+  // pcl::removeNaNFromPointCloud(*objects, *objects, indices);
+  // pcl::removeNaNFromPointCloud(*background, *background, indices);
 
   return true;
 }
@@ -173,6 +173,20 @@ bool pcd_processing::extract_bboxes(cloudPtr &input) {
   sor.setStddevMulThresh(1.0);
   sor.filter(*filtered_input);
   *input = *filtered_input;
+
+  // Lookup Transform
+  tf::StampedTransform transform_stamped;
+  try {
+    tf_listener_.lookupTransform(input->header.frame_id, base_frame,
+                                 ros::Time(0), transform_stamped);
+  } catch (tf::TransformException ex) {
+    ROS_ERROR("%s", ex.what());
+    return false;
+  }
+  Eigen::Affine3f tf_eigen;
+  tf::transformTFToEigen(transform_stamped, tf_eigen);
+  pcl::transformPointCloud(*input, *input, tf_eigen)
+  input->header.frame_id = base_frame;
 
   // Compute centroid and center
   Eigen::Vector4f centroid;
@@ -198,10 +212,10 @@ bool pcd_processing::extract_bboxes(cloudPtr &input) {
   // Calculate transform matrix
   Eigen::Vector3f ea =
       (eigenVectorsPCA).eulerAngles(2, 1, 0);  // yaw pitch roll
-  Eigen::AngleAxisf rollAngle(ea[2], Eigen::Vector3f::UnitY());
+  Eigen::AngleAxisf yawAngle(ea[0], Eigen::Vector3f::UnitZ());
   Eigen::Affine3f transform = Eigen::Affine3f::Identity();
   transform.translate(center);
-  transform.rotate(rollAngle);
+  transform.rotate(yawAngle);
 
   // Calculate bounding box
   cloudPtr transformed_input(new cloud);
@@ -213,13 +227,13 @@ bool pcd_processing::extract_bboxes(cloudPtr &input) {
   transform2.translate(center);
   Eigen::Affine3f transform3 = transform * transform2;
   // Rotate 90
-  Eigen::Affine3f transform4 = transform3 * Eigen::AngleAxisf(
-      M_PI / 2, Eigen::Vector3f::UnitY());
+  Eigen::Affine3f transform4 =
+      transform3 * Eigen::AngleAxisf(M_PI / 2, Eigen::Vector3f::UnitZ());
 
   // Publish bounding box and arrow
   visualization_msgs::Marker bbox_marker, arrow_marker;
-  bbox_marker.header.frame_id = "camera_color_optical_frame";
-  arrow_marker.header.frame_id = "camera_color_optical_frame";
+  bbox_marker.header.frame_id = base_frame;
+  arrow_marker.header.frame_id = base_frame;
   bbox_marker.header.stamp = ros::Time::now();
   arrow_marker.header.stamp = ros::Time::now();
   bbox_marker.ns = "bounding_box";
