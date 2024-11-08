@@ -8,6 +8,7 @@
 #include <message_filters/sync_policies/approximate_time.h>
 #include <message_filters/sync_policies/exact_time.h>
 #include <message_filters/synchronizer.h>
+#include <pcl_ros/transforms.h>
 #include <ros/console.h>
 #include <ros/ros.h>
 #include <sensor_msgs/Image.h>

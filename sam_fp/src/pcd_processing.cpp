@@ -174,19 +174,8 @@ bool pcd_processing::extract_bboxes(cloudPtr &input) {
   sor.filter(*filtered_input);
   *input = *filtered_input;
 
-  // Lookup Transform
-  tf::StampedTransform transform_stamped;
-  try {
-    tf_listener_.lookupTransform(input->header.frame_id, base_frame,
-                                 ros::Time(0), transform_stamped);
-  } catch (tf::TransformException ex) {
-    ROS_ERROR("%s", ex.what());
-    return false;
-  }
-  Eigen::Affine3f tf_eigen;
-  tf::transformTFToEigen(transform_stamped, tf_eigen);
-  pcl::transformPointCloud(*input, *input, tf_eigen)
-  input->header.frame_id = base_frame;
+  // Transform the point cloud
+  pcl_ros::transformPointCloud(base_frame, *input, *input, tf_listener_);
 
   // Compute centroid and center
   Eigen::Vector4f centroid;
