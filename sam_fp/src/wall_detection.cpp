@@ -37,21 +37,25 @@ void wall_detection::cloudCallback(
   wall_points_pub_.publish(cloudmsg_);
 
   // Transform the start and end points
-  geometry_msgs::PointStamped start_base, start_cam, end_base, end_cam;
-  start_cam.header.frame_id = end_cam.header.frame_id = msg->header.frame_id;
-  start_cam.point.x = end_cam.point.x = centroid[0];
-  start_cam.point.y = end_cam.point.y = centroid[1];
-  start_cam.point.z = end_cam.point.z = centroid[2];
-  end_cam.point.z += coefficients->values[0];
-  end_cam.point.x += coefficients->values[1];
-  end_cam.point.y += coefficients->values[2];
+  geometry_msgs::PointStamped start_base, start_cam, end_base;
+  geometry_msgs::Vector3Stamped normal_base, normal_cam;
+  start_cam.header.frame_id = normal_cam.header.frame_id = msg->header.frame_id;
+  start_cam.point.x = centroid[0];
+  start_cam.point.y = centroid[1];
+  start_cam.point.z = centroid[2];
+  normal_cam.vector.x = coefficients->values[0];
+  normal_cam.vector.y = coefficients->values[1];
+  normal_cam.vector.z = coefficients->values[2];
   try {
     tf_listener_.transformPoint(base_frame, start_cam, start_base);
-    tf_listener_.transformPoint(base_frame, end_cam, end_base);
+    tf_listener_.transformVector(base_frame, normal_cam, normal_base);
   } catch (tf::TransformException &ex) {
     ROS_ERROR("%s", ex.what());
     return;
   }
+  end_base.point.x = start_base.point.x + normal_base.vector.x;
+  end_base.point.y = start_base.point.y + normal_base.vector.y;
+  end_base.point.z = start_base.point.z + normal_base.vector.z;
 
   // Publish arrow
   wall_marker_.points.clear();
@@ -60,10 +64,8 @@ void wall_detection::cloudCallback(
   wall_marker_.ns = "wall_arrow";
   wall_marker_.type = visualization_msgs::Marker::ARROW;
   wall_marker_.action = visualization_msgs::Marker::ADD;
-  geometry_msgs::Point start = start_base.point;
-  geometry_msgs::Point end = end_base.point;
-  wall_marker_.points.push_back(start);
-  wall_marker_.points.push_back(end);
+  wall_marker_.points.push_back(start_base.point);
+  wall_marker_.points.push_back(end_base.point);
   wall_marker_.color.r = 0.0f;
   wall_marker_.color.g = 0.0f;
   wall_marker_.color.b = 1.0f;
