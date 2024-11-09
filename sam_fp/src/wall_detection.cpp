@@ -36,23 +36,32 @@ void wall_detection::cloudCallback(
   pcl::toROSMsg(*wall_cloud_, cloudmsg_);
   wall_points_pub_.publish(cloudmsg_);
 
+  // Transform the start and end points
+  geometry_msgs::PointStamped start_base, start_cam, end_base, end_cam;
+  start_cam.header.frame_id = end_cam.header.frame_id = msg->header.frame_id;
+  start_cam.point.x = end_cam.point.x = centroid[0];
+  start_cam.point.y = end_cam.point.y = centroid[1];
+  start_cam.point.z = end_cam.point.z = centroid[2];
+  end_cam.point.z += coefficients->values[0];
+  end_cam.point.x += coefficients->values[1];
+  end_cam.point.y += coefficients->values[2];
+  try {
+    listener_.transformPoint(base_frame, start_cam, start_base);
+    listener_.transformPoint(base_frame, end_cam, end_base);
+  } catch (tf::TransformException &ex) {
+    ROS_ERROR("%s", ex.what());
+    return;
+  }
+
   // Publish arrow
   wall_marker_.points.clear();
-  wall_marker_.header.frame_id = "camera_color_optical_frame";
+  wall_marker_.header.frame_id = base_frame;
   wall_marker_.header.stamp = ros::Time::now();
   wall_marker_.ns = "wall_arrow";
   wall_marker_.type = visualization_msgs::Marker::ARROW;
   wall_marker_.action = visualization_msgs::Marker::ADD;
-  geometry_msgs::Point start;
-  start.x = centroid[0];
-  start.y = centroid[1];
-  start.z = centroid[2];
-  geometry_msgs::Point end;
-  end.x = centroid[0] + coefficients->values[0];
-  end.y = centroid[1] + coefficients->values[1];
-  end.z = centroid[2] + coefficients->values[2];
-  wall_marker_.points.push_back(start);
-  wall_marker_.points.push_back(end);
+  wall_marker_.points.push_back(start_base);
+  wall_marker_.points.push_back(end_base);
   wall_marker_.color.r = 0.0f;
   wall_marker_.color.g = 0.0f;
   wall_marker_.color.b = 1.0f;
@@ -109,7 +118,7 @@ void wall_detection::obbCallback(
   ROS_INFO_STREAM("Wall vector: " << wall_vec);
   ROS_INFO_STREAM("Bbox vector: " << bbox_vec);
   ROS_INFO_STREAM("Euler angles: " << euler_angles);
-  double angle = euler_angles[2];
+  double angle = euler_angles[0];
   //! FIXME: make sure the angle is in the range of [0, pi/2] and correct
   if (angle < 0) {
     angle += M_PI;
@@ -118,7 +127,7 @@ void wall_detection::obbCallback(
     angle = angle - M_PI / 2;
   }
 
-  object_angle_.header.frame_id = "camera_color_optical_frame";
+  object_angle_.header.frame_id = base_frame;
   object_angle_.header.stamp = ros::Time::now();
   object_angle_.ns = "object_angle";
   object_angle_.type = visualization_msgs::Marker::TEXT_VIEW_FACING;

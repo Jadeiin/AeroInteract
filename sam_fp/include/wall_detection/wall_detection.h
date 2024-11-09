@@ -21,10 +21,11 @@ class wall_detection {
   typedef pcl::PointCloud<pcl::PointXYZRGB>::Ptr
       cloudPtr;  // Cloud Pointer Type
 
-  wall_detection(const std::string &topic = "/background_cloud")
-      : pointcloud_topic(topic) {
-    point_cloud_sub_ =
-        nh_.subscribe(pointcloud_topic, 10, &wall_detection::cloudCallback, this);
+  wall_detection(const std::string &topic = "/background_cloud",
+                 const std::string &frame = "camera_link")
+      : pointcloud_topic(topic), base_frame(frame) {
+    point_cloud_sub_ = nh_.subscribe(pointcloud_topic, 10,
+                                     &wall_detection::cloudCallback, this);
     object_boxes_sub_ =
         nh_.subscribe("/object_boxes", 10, &wall_detection::obbCallback, this);
     wall_points_pub_ =
@@ -55,6 +56,7 @@ class wall_detection {
   visualization_msgs::Marker wall_marker_;
   visualization_msgs::Marker object_angle_;
   const std::string pointcloud_topic;
+  const std::string base_frame;
 
   // Transformation
   tf::TransformListener
