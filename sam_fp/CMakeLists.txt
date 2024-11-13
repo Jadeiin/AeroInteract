@@ -12,7 +12,6 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   std_msgs
   tf
-  pcl_ros
   cv_bridge
   masks_msgs
 )
@@ -109,7 +108,7 @@ find_package(PCL REQUIRED)
 catkin_package(
  INCLUDE_DIRS include
  LIBRARIES sam
- CATKIN_DEPENDS roscpp rospy std_msgs masks_msgs cv_bridge tf pcl_ros
+ CATKIN_DEPENDS roscpp rospy std_msgs masks_msgs cv_bridge tf
  DEPENDS system_lib
 )
 

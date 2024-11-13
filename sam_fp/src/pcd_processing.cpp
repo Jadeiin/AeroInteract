@@ -13,8 +13,8 @@ bool pcd_processing::initialize(ros::NodeHandle &nh) {
       nh.advertise<sensor_msgs::PointCloud2>("/objects_cloud", 10);
   background_cloud_pub_ =
       nh.advertise<sensor_msgs::PointCloud2>("/background_cloud", 10);
-  object_boxes_pub_ =
-      nh.advertise<visualization_msgs::MarkerArray>("/object_boxes", 10);
+  objects_marker_pub_ =
+      nh.advertise<visualization_msgs::MarkerArray>("/objects_marker", 10);
   // Initialize pointers
   raw_cloud_.reset(new cloud);
   preprocessed_cloud_.reset(new cloud);
@@ -51,13 +51,13 @@ void pcd_processing::update(const ros::Time &time) {
                                                  << " ns");
 
     start = ros::Time::now();
-    if (!extract_bboxes(objects_cloud_)) {
-      ROS_ERROR("Extracting bounding boxes failed!");
+    if (!segment_plane(objects_cloud_)) {
+      ROS_ERROR("Segmenting plane failed!");
       return;
     }
     end = ros::Time::now();
-    ROS_INFO_STREAM("Extracting bounding boxes time: " << (end - start).toNSec()
-                                                       << " ns");
+    ROS_INFO_STREAM("Segmenting plane time: " << (end - start).toNSec()
+                                              << " ns");
 
     // Publish the objects cloud
     pcl::toROSMsg(*objects_cloud_, cloudmsg_);
@@ -68,9 +68,9 @@ void pcd_processing::update(const ros::Time &time) {
     objects_cloud_pub_.publish(cloudmsg_);
     pcl::toROSMsg(*background_cloud_, cloudmsg_);
     background_cloud_pub_.publish(cloudmsg_);
-    // ROS_INFO_STREAM("object_boxes_:");
-    // ROS_INFO_STREAM(object_boxes_);
-    object_boxes_pub_.publish(object_boxes_);
+    // ROS_INFO_STREAM("objects_marker_:");
+    // ROS_INFO_STREAM(objects_marker_);
+    objects_marker_pub_.publish(objects_marker_);
 
     // Reset the flag
     is_cloud_updated = false;
@@ -152,144 +152,87 @@ bool pcd_processing::cut_point_cloud(cloudPtr &input,
   // pcl::removeNaNFromPointCloud(*objects, *objects, indices);
   // pcl::removeNaNFromPointCloud(*background, *background, indices);
 
+  // Downsample the point cloud
+  pcl::VoxelGrid<point> voxel_grid;
+  double voxel_size = 0.02;
+  voxel_grid.setInputCloud(objects);
+  voxel_grid.setLeafSize(voxel_size, voxel_size, voxel_size);
+  voxel_grid.filter(*objects);
+  voxel_grid.setInputCloud(background);
+  voxel_grid.setLeafSize(voxel_size, voxel_size, voxel_size);
+  voxel_grid.filter(*background);
+
   return true;
 }
 
-bool pcd_processing::extract_bboxes(cloudPtr &input) {
-  // Implement the logic to extract bounding boxes from the point cloud
+bool pcd_processing::segment_plane(cloudPtr &input) {
+  // Implement the logic to segement plane from the point cloud
 
-  // Downsample the point cloud
-  cloudPtr filtered_input(new cloud);
-  pcl::VoxelGrid<point> voxel_grid;
-  voxel_grid.setInputCloud(input);
-  voxel_grid.setLeafSize(0.02f, 0.02f, 0.02f);  // TODO: change to param
-  voxel_grid.filter(*filtered_input);
+  pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients);
+  pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
+  // Create the segmentation object
+  pcl::SACSegmentation<point> seg;
+  // Optional
+  seg.setOptimizeCoefficients(true);
+  // Mandatory
+  seg.setModelType(pcl::SACMODEL_PLANE);
+  seg.setMethodType(pcl::SAC_RANSAC);
+  seg.setDistanceThreshold(0.01);
+  seg.setInputCloud(input);
+  seg.segment(*inliers, *coefficients);
+  if (inliers->indices.size() == 0) {
+    ROS_ERROR(
+        "Could not estimate a planar model for the given dataset (size = 0).");
+    return false;
+  }
+  if (inliers->indices.size() < 100) {
+    ROS_ERROR(
+        "Could not estimate a planar model for the given dataset (size too "
+        "small).");
+    return false;
+  }
+  pcl::copyPointCloud(*input, inliers->indices, *input);
+  Eigen::Vector4f centroid;
+  pcl::compute3DCentroid(*input, centroid);
 
-  // Remove outliers
-  pcl::StatisticalOutlierRemoval<point> sor;
-  sor.setInputCloud(filtered_input);
-  sor.setMeanK(50);
-  sor.setStddevMulThresh(1.0);
-  sor.filter(*filtered_input);
-  *input = *filtered_input;
+  geometry_msgs::PointStamped start_base, start_cam, end_base;
+  geometry_msgs::Vector3Stamped normal_base, normal_cam;
+  start_cam.header.frame_id = normal_cam.header.frame_id =
+      input->header.frame_id;
+  start_cam.point.x = centroid[0];
+  start_cam.point.y = centroid[1];
+  start_cam.point.z = centroid[2];
+  normal_cam.vector.x = coefficients->values[0];
+  normal_cam.vector.y = coefficients->values[1];
+  normal_cam.vector.z = coefficients->values[2];
+  try {
+    tf_listener_.transformPoint(base_frame, start_cam, start_base);
+    tf_listener_.transformVector(base_frame, normal_cam, normal_base);
+  } catch (tf::TransformException &ex) {
+    ROS_ERROR("%s", ex.what());
+    return false;
+  }
+  end_base.point.x = start_base.point.x + normal_base.vector.x;
+  end_base.point.y = start_base.point.y + normal_base.vector.y;
+  end_base.point.z = start_base.point.z + normal_base.vector.z;
 
-  // Transform the point cloud
-  pcl_ros::transformPointCloud(base_frame, *input, *input, tf_listener_);
-
-  // // homebrew method
-  // // Compute centroid and center
-  // Eigen::Vector4f centroid;
-  // point min_pt, max_pt;
-  // pcl::compute3DCentroid(*input, centroid);
-  // pcl::getMinMax3D(*input, min_pt, max_pt);
-  // Eigen::Vector3f center =
-  //     (max_pt.getVector3fMap() + min_pt.getVector3fMap()) / 2;
-
-  // // Compute principal directions
-  // Eigen::Matrix3f covariance;
-  // pcl::computeCovarianceMatrixNormalized(*input, centroid, covariance);
-  // Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> eigen_solver(
-  //     covariance, Eigen::ComputeEigenvectors);
-  // Eigen::Matrix3f eigenVectorsPCA = eigen_solver.eigenvectors();
-  // // Eigen::Vector3f eigenValuesPCA = eigen_solver.eigenvalues();
-  // eigenVectorsPCA.col(2) = eigenVectorsPCA.col(0).cross(eigenVectorsPCA.col(1));
-  // eigenVectorsPCA.col(0) = eigenVectorsPCA.col(1).cross(eigenVectorsPCA.col(2));
-  // eigenVectorsPCA.col(1) = eigenVectorsPCA.col(2).cross(eigenVectorsPCA.col(0));
-  // // Reorder eigenvectors based on eigenvalues (largest to smallest)
-  // eigenVectorsPCA.col(0).swap(eigenVectorsPCA.col(2));
-
-  // // Calculate transform matrix
-  // Eigen::Vector3f ea =
-  //     (eigenVectorsPCA).eulerAngles(2, 1, 0);  // yaw pitch roll
-  // Eigen::AngleAxisf yawAngle(ea[0], Eigen::Vector3f::UnitZ());
-  // Eigen::Affine3f transform = Eigen::Affine3f::Identity();
-  // transform.translate(center);
-  // transform.rotate(yawAngle);
-
-  // // Calculate bounding box
-  // cloudPtr transformed_input(new cloud);
-  // pcl::transformPointCloud(*input, *transformed_input, transform.inverse());
-  // pcl::getMinMax3D(*transformed_input, min_pt, max_pt);
-  // center = (max_pt.getVector3fMap() + min_pt.getVector3fMap()) / 2;
-  // Eigen::Vector3f bbox = (max_pt.getVector3fMap() - min_pt.getVector3fMap());
-  // Eigen::Affine3f transform2 = Eigen::Affine3f::Identity();
-  // transform2.translate(center);
-  // Eigen::Affine3f transform3 = transform * transform2;
-  // // Rotate 90
-  // Eigen::Affine3f transform4 =
-  //     transform3 * Eigen::AngleAxisf(M_PI / 2, Eigen::Vector3f::UnitZ());
-
-  // library method
-  // 1. use pcl::MomentOfInertiaEstimation class
-  pcl::MomentOfInertiaEstimation<point> feature_extractor;
-  feature_extractor.setInputCloud(input);
-  feature_extractor.compute();
-  point min_point_OBB, max_point_OBB, position_OBB;
-  Eigen::Matrix3f rotational_matrix_OBB;
-  feature_extractor.getOBB(min_point_OBB, max_point_OBB, position_OBB,
-                           rotational_matrix_OBB);
-  Eigen::Vector3f ea = (rotational_matrix_OBB).eulerAngles(2, 1, 0);
-  Eigen::AngleAxisf yawAngle(ea[0], Eigen::Vector3f::UnitZ());
-
-  // 2. use CGAL::oriented_bounding_box function
-
-  // Publish bounding box and arrow
-  visualization_msgs::Marker bbox_marker, arrow_marker;
-  bbox_marker.header.frame_id = base_frame;
+  visualization_msgs::Marker arrow_marker;
   arrow_marker.header.frame_id = base_frame;
-  bbox_marker.header.stamp = ros::Time::now();
   arrow_marker.header.stamp = ros::Time::now();
-  bbox_marker.ns = "bounding_box";
-  arrow_marker.ns = "bounding_box_arrow";
-  bbox_marker.type = visualization_msgs::Marker::CUBE;
-  bbox_marker.action = visualization_msgs::Marker::ADD;
+  arrow_marker.ns = "object_arrow";
   arrow_marker.type = visualization_msgs::Marker::ARROW;
   arrow_marker.action = visualization_msgs::Marker::ADD;
-  // bbox_marker.pose.position.x = transform3.translation().x();
-  // bbox_marker.pose.position.y = transform3.translation().y();
-  // bbox_marker.pose.position.z = transform3.translation().z();
-  // arrow_marker.pose.position.x = transform3.translation().x();
-  // arrow_marker.pose.position.y = transform3.translation().y();
-  // arrow_marker.pose.position.z = transform3.translation().z();
-  bbox_marker.pose.position.x = position_OBB.x;
-  bbox_marker.pose.position.y = position_OBB.y;
-  bbox_marker.pose.position.z = position_OBB.z;
-  arrow_marker.pose.position.x = position_OBB.x;
-  arrow_marker.pose.position.y = position_OBB.y;
-  arrow_marker.pose.position.z = position_OBB.z;
-  // Quaternion
-  // Eigen::Quaternionf quat = Eigen::Quaternionf(transform3.rotation());
-  // Eigen::Quaternionf quat1 = Eigen::Quaternionf(transform4.rotation());
-  Eigen::Quaternionf quat = Eigen::Quaternionf(rotational_matrix_OBB);
-  Eigen::Quaternionf quat1 = Eigen::Quaternionf(yawAngle);
-  bbox_marker.pose.orientation.x = quat.x();
-  bbox_marker.pose.orientation.y = quat.y();
-  bbox_marker.pose.orientation.z = quat.z();
-  bbox_marker.pose.orientation.w = quat.w();
-  arrow_marker.pose.orientation.x = quat1.x();
-  arrow_marker.pose.orientation.y = quat1.y();
-  arrow_marker.pose.orientation.z = quat1.z();
-  arrow_marker.pose.orientation.w = quat1.w();
-  // bbox_marker.scale.x = bbox.x();
-  // bbox_marker.scale.y = bbox.y();
-  // bbox_marker.scale.z = bbox.z();
-  bbox_marker.scale.x = max_point_OBB.x - min_point_OBB.x;
-  bbox_marker.scale.y = max_point_OBB.y - min_point_OBB.y;
-  bbox_marker.scale.z = max_point_OBB.z - min_point_OBB.z;
-  arrow_marker.scale.x = 0.5;
-  arrow_marker.scale.y = 0.1;
-  arrow_marker.scale.z = 0.1;
-  bbox_marker.color.r = 1.0f;
-  bbox_marker.color.g = 0.0f;
-  bbox_marker.color.b = 0.0f;
-  bbox_marker.color.a = 0.5;
+  arrow_marker.points.push_back(start_base.point);
+  arrow_marker.points.push_back(end_base.point);
   arrow_marker.color.r = 0.0f;
   arrow_marker.color.g = 1.0f;
   arrow_marker.color.b = 0.0f;
   arrow_marker.color.a = 1.0;
-  object_boxes_.markers.clear();
-  object_boxes_.markers.push_back(bbox_marker);
-  object_boxes_.markers.push_back(arrow_marker);
+  arrow_marker.scale.x = 0.1;
+  arrow_marker.scale.y = 0.1;
+  arrow_marker.scale.z = 0.1;
+  objects_marker_.markers.clear();
+  objects_marker_.markers.push_back(arrow_marker);
 
   return true;
 }

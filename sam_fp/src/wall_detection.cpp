@@ -78,22 +78,21 @@ void wall_detection::cloudCallback(
   return;
 }
 
-void wall_detection::obbCallback(
+void wall_detection::objectCallback(
     const visualization_msgs::MarkerArrayConstPtr &msg) {
   // TODO: Handle multiple OBB
   if (wall_marker_.points.size() == 0) {
     ROS_ERROR("Wall marker not produced.");
     return;
   }
-  visualization_msgs::Marker bbox_marker = msg->markers[0];  // Only one OBB
-  Eigen::Vector3f bbox_centroid(bbox_marker.pose.position.x,
-                                bbox_marker.pose.position.y,
-                                bbox_marker.pose.position.z);
-  Eigen::Quaternionf bbox_quat(
-      bbox_marker.pose.orientation.w, bbox_marker.pose.orientation.x,
-      bbox_marker.pose.orientation.y, bbox_marker.pose.orientation.z);
-  Eigen::Vector3f bbox_vec =
-      bbox_quat._transformVector(Eigen::Vector3f::UnitX());  //? UnitX
+  visualization_msgs::Marker object_marker = msg->markers[0];  // Only one OBB
+  Eigen::Vector3f object_centroid(object_marker.points[0].x,
+                                  object_marker.points[0].y,
+                                  object_marker.points[0].z);
+  Eigen::Vector3f object_end(object_marker.points[1].x,
+                             object_marker.points[1].y,
+                             object_marker.points[1].z);
+  Eigen::Vector3f object_vec = object_end - object_centroid;
   Eigen::Vector3f wall_centroid(wall_marker_.points[0].x,
                                 wall_marker_.points[0].y,
                                 wall_marker_.points[0].z);
@@ -101,12 +100,12 @@ void wall_detection::obbCallback(
                            wall_marker_.points[1].z);
   Eigen::Vector3f wall_vec = wall_end - wall_centroid;
   // make sure two vectors are directed into same way
-  if (wall_vec.dot(bbox_vec) < 0) {
-    bbox_vec = -bbox_vec;
+  if (wall_vec.dot(object_vec) < 0) {
+    object_vec = -object_vec;
   }
   // // method 1: directly calculate angle between two vectors (suppose wall and
-  // object are) double angle = std::acos(wall_vec.dot(bbox_vec) /
-  // (wall_vec.norm() * bbox_vec.norm()));
+  // object are) double angle = std::acos(wall_vec.dot(object_vec) /
+  // (wall_vec.norm() * object_vec.norm()));
   // // make sure the angle is in the range of [0, pi/2]
   // if (angle > M_PI / 2) {
   //     angle = M_PI - angle;
@@ -116,19 +115,22 @@ void wall_detection::obbCallback(
   // Eigen::Vector3f bbox_euler_angles = rotation_matrix.eulerAngles(2, 1, 0);
   // method 3: calculate quaternion from two vectors
   Eigen::Vector3f euler_angles =
-      Eigen::Quaternionf::FromTwoVectors(wall_vec, bbox_vec)
+      Eigen::Quaternionf::FromTwoVectors(wall_vec, object_vec)
           .toRotationMatrix()
           .eulerAngles(2, 1, 0);
   ROS_INFO_STREAM("Wall vector: " << wall_vec);
-  ROS_INFO_STREAM("Bbox vector: " << bbox_vec);
+  ROS_INFO_STREAM("Object vector: " << object_vec);
   ROS_INFO_STREAM("Euler angles: " << euler_angles);
   double angle = euler_angles[0];
+  int front = object_centroid[0] < wall_centroid[0];
+  std::string state_str;
   //! FIXME: make sure the angle is in the range of [0, pi/2] and correct
   if (angle < 0) {
-    angle += M_PI;
-  }
-  if (angle > M_PI / 2) {
-    angle = angle - M_PI / 2;
+    // front & left axis or back & right axis
+    state_str = front ? "front & left" : "back & right";
+  } else {
+    // front & right axis or back & left axis
+    state_str = front ? "front & right" : "back & left";
   }
 
   object_angle_.header.frame_id = base_frame;
@@ -136,16 +138,16 @@ void wall_detection::obbCallback(
   object_angle_.ns = "object_angle";
   object_angle_.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
   object_angle_.action = visualization_msgs::Marker::ADD;
-  object_angle_.pose.position.x = bbox_centroid[0];
-  object_angle_.pose.position.y = bbox_centroid[1];
-  object_angle_.pose.position.z = bbox_centroid[2];
+  object_angle_.pose.position.x = object_centroid[0];
+  object_angle_.pose.position.y = object_centroid[1];
+  object_angle_.pose.position.z = object_centroid[2];
   object_angle_.color.r = 1.0f;
   object_angle_.color.g = 1.0f;
   object_angle_.color.b = 1.0f;
   object_angle_.color.a = 1.0;
   std::stringstream ss;
-  ss << std::fixed << std::setprecision(2) << (angle * 180 / M_PI);
-  object_angle_.text = ss.str() + "°";
+  ss << std::fixed << std::setprecision(2) << (abs(angle) * 180 / M_PI);
+  object_angle_.text = ss.str() + "°" + state_str;
   object_angle_.scale.z = 0.5;
   object_angle_pub_.publish(object_angle_);
   return;

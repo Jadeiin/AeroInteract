@@ -8,7 +8,6 @@
 #include <message_filters/sync_policies/approximate_time.h>
 #include <message_filters/sync_policies/exact_time.h>
 #include <message_filters/synchronizer.h>
-#include <pcl_ros/transforms.h>
 #include <ros/console.h>
 #include <ros/ros.h>
 #include <sensor_msgs/Image.h>
@@ -23,7 +22,6 @@
 #include <pcl/ModelCoefficients.h>
 #include <pcl/common/common.h>
 #include <pcl/features/normal_3d.h>
-#include <pcl/features/moment_of_inertia_estimation.h>
 #include <pcl/filters/extract_indices.h>
 #include <pcl/filters/filter.h>
 #include <pcl/filters/passthrough.h>
@@ -37,12 +35,9 @@
 #include <pcl/sample_consensus/model_types.h>
 #include <pcl/segmentation/sac_segmentation.h>
 #include <pcl_conversions/pcl_conversions.h>
-#include <pcl_ros/point_cloud.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <visualization_msgs/Marker.h>
 #include <visualization_msgs/MarkerArray.h>
-
-#include <pcl_ros/impl/transforms.hpp>
 
 /**
  * @brief: Class pcd_processing: cut RGB-D point cloud using 2D-masks generated
@@ -120,13 +115,13 @@ class pcd_processing {
                        cloudPtr &objects, cloudPtr &background);
 
   /**
-   * @brief extract bboxes from the point cloud
+   * @brief segment plane from the point cloud
    *
    * @param input objects that cut from point cloud
    * @return true success
    * @return false failure
    */
-  bool extract_bboxes(cloudPtr &input);
+  bool segment_plane(cloudPtr &input);
 
   /**
    * @brief callback function for new pointcloud subscriber
@@ -154,7 +149,7 @@ class pcd_processing {
   ros::Publisher objects_cloud_pub_;     //!< Publish objects point cloud
   ros::Publisher background_cloud_pub_;  //!< Publish background point cloud
   ros::Subscriber masks_sub_;            //!< Subscriber to the masks data
-  ros::Publisher object_boxes_pub_;      //!< Publish object bounding boxes
+  ros::Publisher objects_marker_pub_;    //!< Publish objects marker
   cloudPtr raw_cloud_;                   //!< Internal raw point cloud
   cloudPtr preprocessed_cloud_;          //!< Internal preprocessed cloud
   cloudPtr objects_cloud_;               //!< Internal objects point cloud
@@ -162,7 +157,7 @@ class pcd_processing {
   masks_msgs::maskID::Ptr
       latest_maskID_msg_;              //!< Internal latest maskID message
   sensor_msgs::PointCloud2 cloudmsg_;  //!< save msg to cloudmsg_
-  visualization_msgs::MarkerArray object_boxes_;  //!< object bounding box msg
+  visualization_msgs::MarkerArray objects_marker_;  //!< objects marker msg
 
   std::vector<singlemask> processed_masks_;  //!< Internal processed masks
 
