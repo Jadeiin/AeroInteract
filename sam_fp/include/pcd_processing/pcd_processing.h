@@ -23,6 +23,7 @@
 #include <pcl/ModelCoefficients.h>
 #include <pcl/common/common.h>
 #include <pcl/features/normal_3d.h>
+#include <pcl/features/moment_of_inertia_estimation.h>
 #include <pcl/filters/extract_indices.h>
 #include <pcl/filters/filter.h>
 #include <pcl/filters/passthrough.h>

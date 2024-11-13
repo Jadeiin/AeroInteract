@@ -157,7 +157,6 @@ bool pcd_processing::cut_point_cloud(cloudPtr &input,
 
 bool pcd_processing::extract_bboxes(cloudPtr &input) {
   // Implement the logic to extract bounding boxes from the point cloud
-  // homebrew method
 
   // Downsample the point cloud
   cloudPtr filtered_input(new cloud);
@@ -177,47 +176,62 @@ bool pcd_processing::extract_bboxes(cloudPtr &input) {
   // Transform the point cloud
   pcl_ros::transformPointCloud(base_frame, *input, *input, tf_listener_);
 
-  // Compute centroid and center
-  Eigen::Vector4f centroid;
-  point min_pt, max_pt;
-  pcl::compute3DCentroid(*input, centroid);
-  pcl::getMinMax3D(*input, min_pt, max_pt);
-  Eigen::Vector3f center =
-      (max_pt.getVector3fMap() + min_pt.getVector3fMap()) / 2;
+  // // homebrew method
+  // // Compute centroid and center
+  // Eigen::Vector4f centroid;
+  // point min_pt, max_pt;
+  // pcl::compute3DCentroid(*input, centroid);
+  // pcl::getMinMax3D(*input, min_pt, max_pt);
+  // Eigen::Vector3f center =
+  //     (max_pt.getVector3fMap() + min_pt.getVector3fMap()) / 2;
 
-  // Compute principal directions
-  Eigen::Matrix3f covariance;
-  pcl::computeCovarianceMatrixNormalized(*input, centroid, covariance);
-  Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> eigen_solver(
-      covariance, Eigen::ComputeEigenvectors);
-  Eigen::Matrix3f eigenVectorsPCA = eigen_solver.eigenvectors();
-  // Eigen::Vector3f eigenValuesPCA = eigen_solver.eigenvalues();
-  eigenVectorsPCA.col(2) = eigenVectorsPCA.col(0).cross(eigenVectorsPCA.col(1));
-  eigenVectorsPCA.col(0) = eigenVectorsPCA.col(1).cross(eigenVectorsPCA.col(2));
-  eigenVectorsPCA.col(1) = eigenVectorsPCA.col(2).cross(eigenVectorsPCA.col(0));
-  // Reorder eigenvectors based on eigenvalues (largest to smallest)
-  eigenVectorsPCA.col(0).swap(eigenVectorsPCA.col(2));
+  // // Compute principal directions
+  // Eigen::Matrix3f covariance;
+  // pcl::computeCovarianceMatrixNormalized(*input, centroid, covariance);
+  // Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> eigen_solver(
+  //     covariance, Eigen::ComputeEigenvectors);
+  // Eigen::Matrix3f eigenVectorsPCA = eigen_solver.eigenvectors();
+  // // Eigen::Vector3f eigenValuesPCA = eigen_solver.eigenvalues();
+  // eigenVectorsPCA.col(2) = eigenVectorsPCA.col(0).cross(eigenVectorsPCA.col(1));
+  // eigenVectorsPCA.col(0) = eigenVectorsPCA.col(1).cross(eigenVectorsPCA.col(2));
+  // eigenVectorsPCA.col(1) = eigenVectorsPCA.col(2).cross(eigenVectorsPCA.col(0));
+  // // Reorder eigenvectors based on eigenvalues (largest to smallest)
+  // eigenVectorsPCA.col(0).swap(eigenVectorsPCA.col(2));
 
-  // Calculate transform matrix
-  Eigen::Vector3f ea =
-      (eigenVectorsPCA).eulerAngles(2, 1, 0);  // yaw pitch roll
+  // // Calculate transform matrix
+  // Eigen::Vector3f ea =
+  //     (eigenVectorsPCA).eulerAngles(2, 1, 0);  // yaw pitch roll
+  // Eigen::AngleAxisf yawAngle(ea[0], Eigen::Vector3f::UnitZ());
+  // Eigen::Affine3f transform = Eigen::Affine3f::Identity();
+  // transform.translate(center);
+  // transform.rotate(yawAngle);
+
+  // // Calculate bounding box
+  // cloudPtr transformed_input(new cloud);
+  // pcl::transformPointCloud(*input, *transformed_input, transform.inverse());
+  // pcl::getMinMax3D(*transformed_input, min_pt, max_pt);
+  // center = (max_pt.getVector3fMap() + min_pt.getVector3fMap()) / 2;
+  // Eigen::Vector3f bbox = (max_pt.getVector3fMap() - min_pt.getVector3fMap());
+  // Eigen::Affine3f transform2 = Eigen::Affine3f::Identity();
+  // transform2.translate(center);
+  // Eigen::Affine3f transform3 = transform * transform2;
+  // // Rotate 90
+  // Eigen::Affine3f transform4 =
+  //     transform3 * Eigen::AngleAxisf(M_PI / 2, Eigen::Vector3f::UnitZ());
+
+  // library method
+  // 1. use pcl::MomentOfInertiaEstimation class
+  pcl::MomentOfInertiaEstimation<point> feature_extractor;
+  feature_extractor.setInputCloud(input);
+  feature_extractor.compute();
+  point min_point_OBB, max_point_OBB, position_OBB;
+  Eigen::Matrix3f rotational_matrix_OBB;
+  feature_extractor.getOBB(min_point_OBB, max_point_OBB, position_OBB,
+                           rotational_matrix_OBB);
+  Eigen::Vector3f ea = (rotational_matrix_OBB).eulerAngles(2, 1, 0);
   Eigen::AngleAxisf yawAngle(ea[0], Eigen::Vector3f::UnitZ());
-  Eigen::Affine3f transform = Eigen::Affine3f::Identity();
-  transform.translate(center);
-  transform.rotate(yawAngle);
 
-  // Calculate bounding box
-  cloudPtr transformed_input(new cloud);
-  pcl::transformPointCloud(*input, *transformed_input, transform.inverse());
-  pcl::getMinMax3D(*transformed_input, min_pt, max_pt);
-  center = (max_pt.getVector3fMap() + min_pt.getVector3fMap()) / 2;
-  Eigen::Vector3f bbox = (max_pt.getVector3fMap() - min_pt.getVector3fMap());
-  Eigen::Affine3f transform2 = Eigen::Affine3f::Identity();
-  transform2.translate(center);
-  Eigen::Affine3f transform3 = transform * transform2;
-  // Rotate 90
-  Eigen::Affine3f transform4 =
-      transform3 * Eigen::AngleAxisf(M_PI / 2, Eigen::Vector3f::UnitZ());
+  // 2. use CGAL::oriented_bounding_box function
 
   // Publish bounding box and arrow
   visualization_msgs::Marker bbox_marker, arrow_marker;
@@ -231,15 +245,23 @@ bool pcd_processing::extract_bboxes(cloudPtr &input) {
   bbox_marker.action = visualization_msgs::Marker::ADD;
   arrow_marker.type = visualization_msgs::Marker::ARROW;
   arrow_marker.action = visualization_msgs::Marker::ADD;
-  bbox_marker.pose.position.x = transform3.translation().x();
-  bbox_marker.pose.position.y = transform3.translation().y();
-  bbox_marker.pose.position.z = transform3.translation().z();
-  arrow_marker.pose.position.x = transform3.translation().x();
-  arrow_marker.pose.position.y = transform3.translation().y();
-  arrow_marker.pose.position.z = transform3.translation().z();
+  // bbox_marker.pose.position.x = transform3.translation().x();
+  // bbox_marker.pose.position.y = transform3.translation().y();
+  // bbox_marker.pose.position.z = transform3.translation().z();
+  // arrow_marker.pose.position.x = transform3.translation().x();
+  // arrow_marker.pose.position.y = transform3.translation().y();
+  // arrow_marker.pose.position.z = transform3.translation().z();
+  bbox_marker.pose.position.x = position_OBB.x;
+  bbox_marker.pose.position.y = position_OBB.y;
+  bbox_marker.pose.position.z = position_OBB.z;
+  arrow_marker.pose.position.x = position_OBB.x;
+  arrow_marker.pose.position.y = position_OBB.y;
+  arrow_marker.pose.position.z = position_OBB.z;
   // Quaternion
-  Eigen::Quaternionf quat = Eigen::Quaternionf(transform3.rotation());
-  Eigen::Quaternionf quat1 = Eigen::Quaternionf(transform4.rotation());
+  // Eigen::Quaternionf quat = Eigen::Quaternionf(transform3.rotation());
+  // Eigen::Quaternionf quat1 = Eigen::Quaternionf(transform4.rotation());
+  Eigen::Quaternionf quat = Eigen::Quaternionf(rotational_matrix_OBB);
+  Eigen::Quaternionf quat1 = Eigen::Quaternionf(yawAngle);
   bbox_marker.pose.orientation.x = quat.x();
   bbox_marker.pose.orientation.y = quat.y();
   bbox_marker.pose.orientation.z = quat.z();
@@ -248,9 +270,12 @@ bool pcd_processing::extract_bboxes(cloudPtr &input) {
   arrow_marker.pose.orientation.y = quat1.y();
   arrow_marker.pose.orientation.z = quat1.z();
   arrow_marker.pose.orientation.w = quat1.w();
-  bbox_marker.scale.x = bbox.x();
-  bbox_marker.scale.y = bbox.y();
-  bbox_marker.scale.z = bbox.z();
+  // bbox_marker.scale.x = bbox.x();
+  // bbox_marker.scale.y = bbox.y();
+  // bbox_marker.scale.z = bbox.z();
+  bbox_marker.scale.x = max_point_OBB.x - min_point_OBB.x;
+  bbox_marker.scale.y = max_point_OBB.y - min_point_OBB.y;
+  bbox_marker.scale.z = max_point_OBB.z - min_point_OBB.z;
   arrow_marker.scale.x = 0.5;
   arrow_marker.scale.y = 0.1;
   arrow_marker.scale.z = 0.1;
@@ -266,32 +291,6 @@ bool pcd_processing::extract_bboxes(cloudPtr &input) {
   object_boxes_.markers.push_back(bbox_marker);
   object_boxes_.markers.push_back(arrow_marker);
 
-  // library method
-  // 1. use pcl::MomentOfInertiaEstimation class
-  // 2. use CGAL::oriented_bounding_box function
-
-  // auto config = YAML::LoadFile(ROOT_PATH "/config/config.yaml")["Cluster"];
-  // using ClusterFactory = Factory<pc_utils::Cluster<PXYZ>, const YAML::Node
-  // &>; if (auto filter = ClusterFactory::BuildT<std::shared_ptr>(
-  //         pc_utils::ns("EuclideanCluster"), config["EuclideanCluster"]);
-  //     filter) {
-  //   std::vector<int> id, label;
-  //   filter->extract(points, label, id);
-  //   std::cout << points->size() << ", label: " << label.size()
-  //             << ", id: " << id.size() << std::endl;
-  // } else
-  //   return false;
-  // using BoundFactory = Factory<pc_utils::BoundingExtractor<point>>;
-  // if (auto box_extractor = BoundFactory::BuildT<std::shared_ptr>(
-  //         pc_utils::ns("OrientedBBox2p5DExtractor"));
-  //     box_extractor) {
-  //   BoundingBox box;
-  //   box_extractor->extract(input, box);
-  //   std::cout << box.pose.translation().transpose() << ", "
-  //             << box.dxyz.transpose() << std::endl;
-  //   return true;
-  // } else
-  //   return false
   return true;
 }
 
