@@ -185,11 +185,11 @@ bool pcd_processing::segment_plane(cloudPtr &input) {
         "Could not estimate a planar model for the given dataset (size = 0).");
     return false;
   }
-  if (inliers->indices.size() < 100) {
+  if (inliers->indices.size() < 500) {
     ROS_ERROR(
-        "Could not estimate a planar model for the given dataset (size too "
-        "small).");
-    return false;
+        "Could not estimate a planar model for the given dataset (size = %ld).",
+        inliers->indices.size());
+    return;
   }
   pcl::copyPointCloud(*input, inliers->indices, *input);
   Eigen::Vector4f centroid;

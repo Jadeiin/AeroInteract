@@ -24,10 +24,10 @@ void wall_detection::cloudCallback(
         "Could not estimate a planar model for the given dataset (size = 0).");
     return;
   }
-  if (inliers->indices.size() < 10000) {
+  if (inliers->indices.size() < 1500) {
     ROS_ERROR(
-        "Could not estimate a planar model for the given dataset (size too "
-        "small).");
+        "Could not estimate a planar model for the given dataset (size = %ld).",
+        inliers->indices.size());
     return;
   }
   pcl::copyPointCloud(*raw_cloud_, inliers->indices, *wall_cloud_);
