@@ -1,10 +1,10 @@
 ## Environment preparation:
 Follow the install instructions above
 
-### NanoOWL + NanoSAM envirnoment configuration
+### NanoOWL + NanoSAM environment configuration
 
 Install PyTorch, TensorRT, transformers, torch2trt, NanoOWL, NanoSAM
-torchvision, matplotlib, onnx, opencv (invisible requirements)
+torchvision, onnx, matplotlib (for demo), opencv (invisible requirements)
 
 ```
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/root/TensorRT-$VERSION/lib
@@ -31,7 +31,7 @@ trtexec \
     --fp16
 ```
 
-### ROS envirnoment configuration
+### ROS environment configuration
 
 build the ROS package. Change the corresponding camera topic, engine path, text prompt etc. before using.
 
@@ -39,4 +39,20 @@ build the ROS package. Change the corresponding camera topic, engine path, text 
 ln -s sam_ros/tools/*.sh .
 cd catkin_ws && catkin_make && cd ..
 bash ros.sh; bash vnc.sh
+```
+
+## Jetson Platform Deployment
+
+Using Docker as base development environment, install modifed [jetson-containers](https://github.com/Jadeiin/jetson-containers) and prepare basic environment at first.
+
+Then run command below:
+
+```
+jetson-containers build sam_ros --package-dirs=/path/to/sam_ros/tools
+
+# You can add following arguments to speed-up build steps if your network situation are bad
+# --build-arg http_proxy=http://127.0.0.1:7890,https_proxy=http://127.0.0.1:7890
+# And skip all tests
+# --skip-tests all
+# Or you want test all packages, HTTP_PROXY & HTTPS_PROXY can be set
 ```
