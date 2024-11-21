@@ -10,6 +10,7 @@ FROM ${BASE_IMAGE}
 ARG ROS_PACKAGE=pcl_conversions
 ENV ROS_DISTRO=noetic
 ENV ROS_ROOT=/opt/ros/${ROS_DISTRO}
+ENV ROS_PACKAGE_PATH=/opt/ros/${ROS_DISTRO}/share
 ENV ROS_PYTHON_VERSION=3
 
 WORKDIR /workspace
@@ -40,3 +41,8 @@ RUN git clone --branch=${SAMROS_BRANCH} ${SAMROS_REPO} /opt/sam_ros && \
     ln -s /opt/sam_ros /workspace/catkin_ws/src && \
     cd /workspace/catkin_ws && \
     catkin_make
+
+ENTRYPOINT ["/ros_entrypoint.sh"]
+CMD ["/bin/bash"]
+
+WORKDIR /opt
