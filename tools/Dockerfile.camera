@@ -1,7 +1,7 @@
 #---
-# name: sam_ros
+# name: sam_ros:camera
 # group: robots
-# depends: [ros:noetic-desktop, nanoowl, nanosam]
+# depends: [ros:noetic-desktop, nanoowl, nanosam, realsense]
 # test: test.sh
 #---
 ARG BASE_IMAGE
@@ -23,14 +23,15 @@ ARG SAMROS_REPO="https://git.qunn.eu/poesty/sam_ros" \
 #     apt-get clean
 
 RUN cd ros_catkin_ws && \
-    rosinstall_generator pcl_conversions --rosdistro ${ROS_DISTRO} --deps --tar --exclude RPP > ${ROS_DISTRO}-sam_ros.rosinstall && \
+    # TODO: add Orbbec SDK ROS wrapper
+    rosinstall_generator depthai-ros pcl_conversions realsense2_camera rgbd_launch --rosdistro ${ROS_DISTRO} --deps --tar --exclude RPP > ${ROS_DISTRO}-sam_ros.rosinstall && \
     vcs import --retry 100 --input ${ROS_DISTRO}-sam_ros.rosinstall ./src && \
     apt-get update && \
     rosdep install -y \
 	 --from-paths ./src \
 	 --ignore-packages-from-source \
 	 --rosdistro ${ROS_DISTRO} \
-	 --skip-keys "python3-pykdl libopencv-dev libopencv-contrib-dev libopencv-imgproc-dev python-opencv python3-opencv" && \
+	 --skip-keys "python3-pykdl libopencv-dev libopencv-contrib-dev libopencv-imgproc-dev python-opencv python3-opencv librealsense2" && \
     python3 ./src/catkin/bin/catkin_make_isolated --install --install-space ${ROS_ROOT} -DCMAKE_BUILD_TYPE=Release -DSETUPTOOLS_DEB_LAYOUT=OFF && \
     rm -rf /var/lib/apt/lists/* && \
     apt-get clean
