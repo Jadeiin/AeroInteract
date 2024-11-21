@@ -1,10 +1,10 @@
 #ifndef WALL_DETECTION_CLASS_H
 #define WALL_DETECTION_CLASS_H
 
+#include <pcl/ModelCoefficients.h>
 #include <pcl/common/centroid.h>
 #include <pcl/segmentation/sac_segmentation.h>
 #include <pcl_conversions/pcl_conversions.h>
-#include <pcl_msgs/ModelCoefficients.h>
 #include <ros/ros.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <tf/tf.h>
