@@ -1,5 +1,5 @@
 {
-    "sam_ros": {
+    "sam_ros:base": {
         "dockerfile": "Dockerfile"
     },
     "sam_ros:camera": {

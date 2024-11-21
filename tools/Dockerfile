@@ -1,5 +1,5 @@
 #---
-# name: sam_ros
+# name: sam_ros:base
 # group: robots
 # depends: [ros:noetic-desktop, nanoowl, nanosam]
 # test: test.sh
