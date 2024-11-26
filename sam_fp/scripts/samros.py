@@ -31,13 +31,13 @@ class NanoSAMRos:
         self.bridge = CvBridge()
         # Load nanoowl and nanosam model
         owl_image_encoder = rospy.get_param(
-            "owl_image_encoder", "/root/autodl-tmp/owl_image_encoder_patch32.engine"
+            "owl_image_encoder", "/opt/nanoowl/data/owl_image_encoder_patch32.engine"
         )
         sam_image_encoder = rospy.get_param(
-            "sam_image_encoder", "/root/autodl-tmp/resnet18_image_encoder.engine"
+            "sam_image_encoder", "/opt/nanosam/data/resnet18_image_encoder.engine"
         )
         sam_mask_decoder = rospy.get_param(
-            "sam_mask_decoder", "/root/autodl-tmp/mobile_sam_mask_decoder.engine"
+            "sam_mask_decoder", "/opt/nanosam/data/mobile_sam_mask_decoder.engine"
         )
         self.owl_predictor = OwlPredictor(image_encoder_engine=owl_image_encoder)
         rospy.loginfo("nanoowl model has been loaded.")

@@ -48,7 +48,8 @@ Using Docker as base development environment, install modifed [jetson-containers
 Then run command below:
 
 ```
-jetson-containers build sam_ros --package-dirs=/path/to/sam_ros/tools
+# base package for development usage, camera package for deployment usage
+jetson-containers build sam_ros:base --package-dirs=/path/to/sam_ros/tools
 
 # You can add following arguments to speed-up build steps if your network situation are bad
 # --build-arg http_proxy=http://127.0.0.1:7890,https_proxy=http://127.0.0.1:7890
