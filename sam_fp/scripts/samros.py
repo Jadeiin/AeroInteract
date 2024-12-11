@@ -41,6 +41,9 @@ class NanoSAMRos:
         )
         self.owl_predictor = OwlPredictor(image_encoder_engine=owl_image_encoder)
         rospy.loginfo("nanoowl model has been loaded.")
+        text = self.search_text.strip("][()")
+        self.text = text.split(",")
+        self.text_encodings = self.owl_predictor.encode_text(text)
         self.sam_predictor = Predictor(sam_image_encoder, sam_mask_decoder)
         rospy.loginfo("nanosam model has been loaded.")
         rospy.loginfo("Node has been started.")
@@ -48,14 +51,11 @@ class NanoSAMRos:
     def infer(self, cv_image):
         rospy.loginfo("inference is triggered.")
         image = Image.fromarray(cv_image)
-        text = self.search_text.strip("][()")
-        text = text.split(",")
         t0 = time.perf_counter_ns()
-        text_encodings = self.owl_predictor.encode_text(text)
         detections = self.owl_predictor.predict(
             image=image,  #! PIL format
-            text=text,
-            text_encodings=text_encodings,
+            text=self.text,
+            text_encodings=self.text_encodings,
             pad_square=False,
         )
         t1 = time.perf_counter_ns()
