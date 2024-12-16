@@ -18,7 +18,6 @@ ARG SAMROS_REPO="https://git.qunn.eu/poesty/sam_ros" \
     SAMROS_BRANCH=wall_detection
 
 
-
 RUN cd ros_catkin_ws && \
     rosinstall_generator depthai-ros pcl_conversions realsense2_camera rgbd_launch --rosdistro ${ROS_DISTRO} --deps --tar --exclude RPP librealsense2 > ${ROS_DISTRO}-sam_ros.rosinstall && \
     vcs import --retry 100 --input ${ROS_DISTRO}-sam_ros.rosinstall ./src && \
@@ -32,19 +31,16 @@ RUN cd ros_catkin_ws && \
     rm -rf /var/lib/apt/lists/* && \
     apt-get clean
 
-RUN git clone --branch=${SAMROS_BRANCH} ${SAMROS_REPO} /opt/sam_ros && \
-    mkdir -p /workspace/catkin_ws/src && \
-    ln -s /opt/sam_ros /workspace/catkin_ws/src && \
-    /bin/bash -c 'cd /workspace/catkin_ws; source /opt/ros/${ROS_DISTRO}/setup.bash; catkin_make'
-
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libdw-dev && \
     rm -rf /var/lib/apt/lists/* && \
     apt-get clean
 
-RUN git clone --branch=main --depth=1 https://github.com/orbbec/OrbbecSDK_ROS1.git /opt/orbbec_camera && \
-    mkdir -p /workspace/catkin_ws/src && \
+RUN mkdir -p /workspace/catkin_ws/src && \
+    git clone --branch=main --depth=1 https://github.com/orbbec/OrbbecSDK_ROS1.git /opt/orbbec_camera && \
+    git clone --branch=${SAMROS_BRANCH} ${SAMROS_REPO} /opt/sam_ros && \
     ln -s /opt/orbbec_camera /workspace/catkin_ws/src && \
+    ln -s /opt/sam_ros /workspace/catkin_ws/src && \
     /bin/bash -c 'cd /workspace/catkin_ws; source /opt/ros/${ROS_DISTRO}/setup.bash; catkin_make'
 
 # Add udev rule for depthai on host machine
