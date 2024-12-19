@@ -3,6 +3,9 @@
     <!-- Launch arguments -->
     <arg name="search_text" default="[a door]" doc="Text prompt for SAM"/>
     <arg name="image_topic" default="/camera/color/image_raw" doc="RGB image topic"/>
+    <arg name="owl_image_encoder" default="" doc="Path to OWL image encoder model"/>
+    <arg name="sam_image_encoder" default="" doc="Path to SAM image encoder model"/>
+    <arg name="sam_mask_decoder" default="" doc="Path to SAM mask decoder model"/>
     <arg name="point_cloud_topic" default="/camera/depth_registered/points" doc="Point cloud topic"/>
     <arg name="camera_frame" default="camera_link" doc="Camera frame ID"/>
     <arg name="start_rviz" default="true" doc="Start RViz"/>
@@ -26,6 +29,9 @@
     <node name="sam_node" pkg="sam_fp" type="samros.py" output="screen">
         <param name="search_text" value="$(arg search_text)"/>
         <param name="image_topic" value="$(arg image_topic)"/>
+        <param name="owl_image_encoder" value="$(arg owl_image_encoder)"/>
+        <param name="sam_image_encoder" value="$(arg sam_image_encoder)"/>
+        <param name="sam_mask_decoder" value="$(arg sam_mask_decoder)"/>
     </node>
 
     <!-- Point cloud processing node -->
