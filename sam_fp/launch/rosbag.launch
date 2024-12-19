@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+    <!-- Launch arguments -->
+    <arg name="bag_file" default="closed.bag" doc="Bag file to play"/>
+    <arg name="bag_path" default="/rosbag" doc="Path to bag file"/>
+    <arg name="loop" default="true" doc="Loop playback"/>
+    <arg name="rate" default="1.0" doc="Playback rate multiplier"/>
+    <arg name="delay" default="5" doc="Startup delay in seconds"/>
+    <arg name="use_sim_time" default="true" doc="Use simulation time"/>
+    <arg name="search_text" default="[a door]" doc="Text prompt for SAM"/>
+    <arg name="image_topic" default="/camera/color/image_raw" doc="RGB image topic"/>
+    <arg name="point_cloud_topic" default="/camera/depth_registered/points" doc="Point cloud topic"/>
+    <arg name="camera_frame" default="camera_link" doc="Camera frame ID"/>
+    <arg name="start_rviz" default="true" doc="Start RViz"/>
+    <arg name="rviz_config" default="$(find sam_fp)/rviz/default.rviz" doc="RViz config file"/>
+
+    <!-- Set use_sim_time parameter -->
+    <param name="/use_sim_time" value="$(arg use_sim_time)"/>
+
+    <!-- Rosbag play node -->
+    <node pkg="rosbag" type="play" name="player" output="screen"
+          launch-prefix="bash -c 'sleep $(arg delay); $0 $@'"
+          args="$(arg bag_path)/$(arg bag_file) $(arg loop ? '-l' : '') --clock -r $(arg rate)">
+    </node>
+
+    <!-- SAM node -->
+    <node name="sam_node" pkg="sam_fp" type="samros.py" output="screen">
+        <param name="search_text" value="$(arg search_text)"/>
+        <param name="image_topic" value="$(arg image_topic)"/>
+    </node>
+
+    <!-- Point cloud processing node -->
+    <node name="pcd_processing" pkg="sam_fp" type="pcd_processing_node" output="screen">
+        <param name="pointcloud_topic" value="$(arg point_cloud_topic)"/>
+        <param name="base_frame" value="$(arg camera_frame)"/>
+    </node>
+
+    <!-- Wall detection node -->
+    <node name="wall_detection" pkg="sam_fp" type="wall_detection_node" output="screen">
+        <param name="pointcloud_topic" value="/background_cloud"/>
+        <param name="base_frame" value="$(arg camera_frame)"/>
+    </node>
+
+    <!-- RViz -->
+    <node if="$(arg start_rviz)" 
+          name="rviz" pkg="rviz" type="rviz" 
+          args="-d $(arg rviz_config)" 
+          output="screen"/>
+
+    <!-- TF tree configuration if needed -->
+    <!-- <node pkg="tf" type="static_transform_publisher" name="camera_broadcaster" 
+          args="0 0 0 0 0 0 map $(arg camera_frame) 100" /> -->
+</launch> 
