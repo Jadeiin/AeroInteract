@@ -17,7 +17,7 @@ WORKDIR /workspace
 ARG SAMROS_REPO="https://git.qunn.eu/poesty/sam_ros" \
     SAMROS_BRANCH=wall_detection
 
-
+# Root workspace
 RUN cd ros_catkin_ws && \
     rosinstall_generator depthai-ros pcl_conversions realsense2_camera rgbd_launch --rosdistro ${ROS_DISTRO} --deps --tar --exclude RPP librealsense2 > ${ROS_DISTRO}-sam_ros.rosinstall && \
     vcs import --retry 100 --input ${ROS_DISTRO}-sam_ros.rosinstall ./src && \
@@ -31,11 +31,13 @@ RUN cd ros_catkin_ws && \
     rm -rf /var/lib/apt/lists/* && \
     apt-get clean
 
+# Orbbec SDK dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libdw-dev && \
     rm -rf /var/lib/apt/lists/* && \
     apt-get clean
 
+# Workspace
 RUN mkdir -p /workspace/catkin_ws/src && \
     git clone --branch=main --depth=1 https://github.com/orbbec/OrbbecSDK_ROS1.git /opt/orbbec_camera && \
     git clone --branch=${SAMROS_BRANCH} ${SAMROS_REPO} /opt/sam_ros && \
