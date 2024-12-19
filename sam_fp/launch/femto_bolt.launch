@@ -7,6 +7,12 @@
     <arg name="camera_frame" default="camera_link" doc="Camera frame ID"/>
     <arg name="start_rviz" default="true" doc="Start RViz"/>
     <arg name="rviz_config" default="$(find sam_fp)/rviz/default.rviz" doc="RViz config file"/>
+    <arg name="tensorrt_path" default="" doc="TensorRT library path"/>
+
+    <!-- Environment variables -->
+    <env name="LD_LIBRARY_PATH" 
+         value="$(env LD_LIBRARY_PATH):$(arg tensorrt_path)" 
+         if="$(eval len(arg('tensorrt_path')) > 0)"/>
 
     <!-- Camera node -->
     <include file="$(find orbbec_camera)/launch/femto_bolt.launch">
