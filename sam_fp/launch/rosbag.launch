@@ -29,7 +29,7 @@
     <!-- Rosbag play node -->
     <node pkg="rosbag" type="play" name="player" output="screen"
           launch-prefix="bash -c 'sleep $(arg delay); $0 $@'"
-          args="$(arg bag_path)/$(arg bag_file) $(arg loop ? '-l' : '') --clock -r $(arg rate)">
+          args="$(eval arg('bag_path') + '/' + arg('bag_file') + ' ' + (arg('loop') and '-l' or '') + ' --clock -r ' + str(arg('rate')))">
     </node>
 
     <!-- SAM node -->
