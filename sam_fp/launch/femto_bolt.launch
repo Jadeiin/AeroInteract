@@ -35,13 +35,13 @@
     </node>
 
     <!-- Point cloud processing node -->
-    <node name="pcd_processing" pkg="sam_fp" type="pcd_processing_node" output="screen">
+    <node name="pcd_processing_node" pkg="sam_fp" type="pcd_processing_node" output="screen">
         <param name="pointcloud_topic" value="$(arg point_cloud_topic)"/>
         <param name="base_frame" value="$(arg camera_frame)"/>
     </node>
 
     <!-- Wall detection node -->
-    <node name="wall_detection" pkg="sam_fp" type="wall_detection_node" output="screen">
+    <node name="wall_detection_node" pkg="sam_fp" type="wall_detection_node" output="screen">
         <param name="pointcloud_topic" value="/background_cloud"/>
         <param name="base_frame" value="$(arg camera_frame)"/>
     </node>

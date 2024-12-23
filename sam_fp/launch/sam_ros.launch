@@ -5,7 +5,7 @@
     <arg name="search_text" default="[a door]" />
 
 
-    <node pkg="sam_fp" type="samros.py" name="samros" output="screen">
+    <node pkg="sam_fp" type="samros.py" name="sam_node" output="screen">
         <!-- Conditionally set the parameter if the argument is not empty -->
         <param name="search_text" value="$(arg search_text)"
             if="$(eval len(arg('search_text')) > 0)" />

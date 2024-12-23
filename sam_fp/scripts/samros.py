@@ -14,7 +14,7 @@ import time
 
 class NanoSAMRos:
     def __init__(self):
-        rospy.init_node("nanosamros", anonymous=True)
+        rospy.init_node("sam_node")
         self.image_topic = rospy.get_param(
             "image_topic", "/camera/color/image_raw"
         )  # Default is image_raw topic of Tiago robot
