@@ -11,8 +11,10 @@
     <arg name="start_rviz" default="true" doc="Start RViz"/>
     <arg name="rviz_config" default="$(find sam_fp)/rviz/oak-d.rviz" doc="RViz config file"/>
     <arg name="tensorrt_path" default="" doc="TensorRT library path"/>
+    <arg name="hf_endpoint" default="https://hf-mirror.com" doc="Hugging Face endpoint URL"/>
 
     <!-- Environment variables -->
+    <env name="HF_ENDPOINT" value="$(arg hf_endpoint)"/>
     <env name="LD_LIBRARY_PATH" 
          value="$(env LD_LIBRARY_PATH):$(arg tensorrt_path)" 
          if="$(eval len(arg('tensorrt_path')) > 0)"/>
