@@ -1,14 +1,22 @@
 #include "wall_detection/wall_detection.h"
 
-wall_detection::wall_detection(const std::string &topic, const std::string &frame)
-    : pointcloud_topic(topic), base_frame(frame) {
-  point_cloud_sub_ = nh_.subscribe(pointcloud_topic, 10,
-                                     &wall_detection::cloudCallback, this);
-  objects_marker_sub_ = nh_.subscribe("/objects_marker", 10,
-                                        &wall_detection::objectCallback, this);
-  wall_points_pub_ = nh_.advertise<sensor_msgs::PointCloud2>("/wall_points", 10);
-  wall_marker_pub_ = nh_.advertise<visualization_msgs::Marker>("/wall_marker", 10);
-  object_angle_pub_ = nh_.advertise<visualization_msgs::Marker>("/object_angle", 10);
+// Constructor
+wall_detection::wall_detection(ros::NodeHandle& nh_) : nh(nh_) {
+  // Get parameters from the parameter server
+  nh.param<std::string>("pointcloud_topic", pointcloud_topic_, "/background_cloud");
+  nh.param<std::string>("base_frame", base_frame_, "camera_link");
+  nh.param<bool>("/enable_metrics", enable_metrics_, false);
+
+  // Setup subscribers and publishers
+  point_cloud_sub_ = nh.subscribe(pointcloud_topic, 10,
+                                   &wall_detection::cloudCallback, this);
+  objects_marker_sub_ = nh.subscribe("/objects_marker", 10,
+                                      &wall_detection::objectCallback, this);
+  wall_points_pub_ = nh.advertise<sensor_msgs::PointCloud2>("/wall_points", 10);
+  wall_marker_pub_ = nh.advertise<visualization_msgs::Marker>("/wall_marker", 10);
+  object_angle_pub_ = nh.advertise<visualization_msgs::Marker>("/object_angle", 10);
+
+  // Initialize pointers
   raw_cloud_.reset(new cloud);
   wall_cloud_.reset(new cloud);
 }

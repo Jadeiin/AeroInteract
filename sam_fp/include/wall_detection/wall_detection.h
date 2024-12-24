@@ -21,14 +21,13 @@ class wall_detection {
   typedef pcl::PointCloud<pcl::PointXYZRGB>::Ptr
       cloudPtr;  // Cloud Pointer Type
 
-  wall_detection(const std::string &topic = "/background_cloud",
-                 const std::string &frame = "camera_link");
+  wall_detection(ros::NodeHandle& nh_);
   ~wall_detection() {}
 
  private:
   void cloudCallback(const sensor_msgs::PointCloud2ConstPtr &msg);
   void objectCallback(const visualization_msgs::MarkerArrayConstPtr &msg);
-  ros::NodeHandle nh_;
+  ros::NodeHandle nh;
   ros::Subscriber point_cloud_sub_;
   ros::Subscriber objects_marker_sub_;
   ros::Publisher wall_points_pub_;
@@ -40,8 +39,9 @@ class wall_detection {
   sensor_msgs::PointCloud2 cloudmsg_;
   visualization_msgs::Marker wall_marker_;
   visualization_msgs::Marker object_angle_;
-  const std::string pointcloud_topic;
-  const std::string base_frame;
+  std::string pointcloud_topic;
+  std::string base_frame;
+  bool enable_metrics_;
 
   // Transformation
   tf::TransformListener

@@ -54,28 +54,8 @@ class pcd_processing {
   typedef pcl::PointCloud<pcl::PointXYZRGB>::Ptr
       cloudPtr;  // Cloud Pointer Type
 
-  // Constructor and Destructor
-  pcd_processing(const std::string &topic = "/camera/depth_registered/points",
-                 const std::string &frame = "camera_link")
-      : pointcloud_topic(topic),
-        base_frame(frame),
-        is_cloud_updated(false) {
-
-  }  // Initialize and refer to topic and frame with default values. Initialize
-     // member variables, allocate resources, etc.
-
-  ~pcd_processing() {
-    // Empty destructor body
-  }  // Destructor
-
-  /**
-   * @brief initialize ros all subscribers/publishers, member variables
-   *
-   * @param nh NodeHandle
-   * @return true success
-   * @return false failure
-   */
-  bool initialize(ros::NodeHandle &nh);
+  pcd_processing(ros::NodeHandle& nh_);
+  ~pcd_processing() {}
 
   /**
    * @brief called periodically, update the pcd_processing object
@@ -141,10 +121,12 @@ class pcd_processing {
                                     Eigen::RowMajor> &matrix);
 
   // Private variables
-  const std::string pointcloud_topic;
-  const std::string base_frame;
+  std::string pointcloud_topic_;
+  std::string base_frame_;
   bool is_cloud_updated;  //!< new pointcloud recieved
+  bool enable_metrics_;
 
+  ros::NodeHandle nh;
   ros::Subscriber point_cloud_sub_;      //!< Subscriber to the PointCloud data
   ros::Publisher objects_cloud_pub_;     //!< Publish objects point cloud
   ros::Publisher background_cloud_pub_;  //!< Publish background point cloud

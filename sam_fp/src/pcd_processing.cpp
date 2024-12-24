@@ -1,12 +1,15 @@
 #include "pcd_processing/pcd_processing.h"
 
-// Initialize method
-bool pcd_processing::initialize(ros::NodeHandle &nh) {
-  // ROS_INFO_STREAM(pcd_processing::pointcloud_topic);
+// Constructor
+pcd_processing::pcd_processing(ros::NodeHandle& nh_) : nh(nh_) {
+  // Get parameters from the parameter server
+  nh.param<std::string>("pointcloud_topic", pointcloud_topic_, "/camera/depth_registered/points");
+  nh.param<std::string>("base_frame", base_frame_, "camera_link");
+  nh.param<bool>("/enable_metrics", enable_metrics_, false);
 
   // Initialize ROS subscribers, publishers, and other members
   point_cloud_sub_ =
-      nh.subscribe(pointcloud_topic, 10, &pcd_processing::cloudCallback, this);
+      nh.subscribe(pointcloud_topic_, 10, &pcd_processing::cloudCallback, this);
   masks_sub_ =
       nh.subscribe("/sam_mask", 10, &pcd_processing::masksCallback, this);
   objects_cloud_pub_ =
@@ -15,13 +18,16 @@ bool pcd_processing::initialize(ros::NodeHandle &nh) {
       nh.advertise<sensor_msgs::PointCloud2>("/background_cloud", 10);
   objects_marker_pub_ =
       nh.advertise<visualization_msgs::MarkerArray>("/objects_marker", 10);
+
   // Initialize pointers
   raw_cloud_.reset(new cloud);
   preprocessed_cloud_.reset(new cloud);
   objects_cloud_.reset(new cloud);
   background_cloud_.reset(new cloud);
   latest_maskID_msg_.reset(new masks_msgs::maskID);
-  return true;  // Return true if initialization is successful
+
+  // Initialize flags
+  is_cloud_updated = false;
 }
 
 // Update method
@@ -30,34 +36,41 @@ void pcd_processing::update(const ros::Time &time) {
 
   if (is_cloud_updated) {
     // Preprocess the raw cloud
-    ros::Time start = ros::Time::now();
+    ros::Time start;
+    if (enable_metrics_) start = ros::Time::now();
     if (!raw_cloud_preprocessing(raw_cloud_, preprocessed_cloud_)) {
       ROS_ERROR("Raw cloud preprocessing failed!");
       return;
     }
-    ros::Time end = ros::Time::now();
-    ROS_INFO_STREAM("Raw cloud preprocessing time: " << (end - start).toNSec()
+    if (enable_metrics_) {
+      ros::Time end = ros::Time::now();
+      ROS_INFO_STREAM("Raw cloud preprocessing time: " << (end - start).toNSec()
                                                      << " ns");
+    }
 
     // Cut the preprocessed cloud //TODO: pass the argument
-    start = ros::Time::now();
+    if (enable_metrics_) start = ros::Time::now();
     if (!cut_point_cloud(preprocessed_cloud_, processed_masks_, objects_cloud_,
                          background_cloud_)) {
       ROS_ERROR("Cutting point cloud failed!");
       return;
     }
-    end = ros::Time::now();
-    ROS_INFO_STREAM("Cutting point cloud time: " << (end - start).toNSec()
-                                                 << " ns");
+    if (enable_metrics_) {
+      ros::Time end = ros::Time::now();
+      ROS_INFO_STREAM("Cutting point cloud time: " << (end - start).toNSec()
+                                                   << " ns");
+    }
 
-    start = ros::Time::now();
+    if (enable_metrics_) start = ros::Time::now();
     if (!segment_plane(objects_cloud_)) {
       ROS_ERROR("Segmenting plane failed!");
       return;
     }
-    end = ros::Time::now();
-    ROS_INFO_STREAM("Segmenting plane time: " << (end - start).toNSec()
-                                              << " ns");
+    if (enable_metrics_) {
+      ros::Time end = ros::Time::now();
+      ROS_INFO_STREAM("Segmenting plane time: " << (end - start).toNSec()
+                                               << " ns");
+    }
 
     // Publish the objects cloud
     pcl::toROSMsg(*objects_cloud_, cloudmsg_);
@@ -206,8 +219,8 @@ bool pcd_processing::segment_plane(cloudPtr &input) {
   normal_cam.vector.y = coefficients->values[1];
   normal_cam.vector.z = coefficients->values[2];
   try {
-    tf_listener_.transformPoint(base_frame, start_cam, start_base);
-    tf_listener_.transformVector(base_frame, normal_cam, normal_base);
+    tf_listener_.transformPoint(base_frame_, start_cam, start_base);
+    tf_listener_.transformVector(base_frame_, normal_cam, normal_base);
   } catch (tf::TransformException &ex) {
     ROS_ERROR("%s", ex.what());
     return false;
@@ -217,7 +230,7 @@ bool pcd_processing::segment_plane(cloudPtr &input) {
   end_base.point.z = start_base.point.z + normal_base.vector.z;
 
   visualization_msgs::Marker arrow_marker;
-  arrow_marker.header.frame_id = base_frame;
+  arrow_marker.header.frame_id = base_frame_;
   arrow_marker.header.stamp = ros::Time::now();
   arrow_marker.ns = "object_arrow";
   arrow_marker.type = visualization_msgs::Marker::ARROW;
