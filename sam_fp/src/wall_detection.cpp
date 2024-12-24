@@ -103,6 +103,7 @@ void wall_detection::cloudCallback(
 void wall_detection::objectCallback(
     const visualization_msgs::MarkerArrayConstPtr &msg) {
   // TODO: Handle multiple OBB
+  // ROS_INFO("objectCallback is triggered.");
   if (wall_marker_.points.size() == 0) {
     ROS_ERROR("Wall marker not produced.");
     return;
@@ -140,9 +141,11 @@ void wall_detection::objectCallback(
       Eigen::Quaternionf::FromTwoVectors(wall_vec, object_vec)
           .toRotationMatrix()
           .eulerAngles(2, 1, 0);
-  ROS_INFO_STREAM("Wall vector: " << wall_vec);
-  ROS_INFO_STREAM("Object vector: " << object_vec);
-  ROS_INFO_STREAM("Euler angles: " << euler_angles);
+  if (enable_metrics_) {
+    ROS_INFO_STREAM("Wall vector: " << wall_vec);
+    ROS_INFO_STREAM("Object vector: " << object_vec);
+    ROS_INFO_STREAM("Euler angles: " << euler_angles);
+  }
   double angle = euler_angles[0];
   int front = object_centroid[0] < wall_centroid[0];
   std::string state_str;
@@ -172,5 +175,6 @@ void wall_detection::objectCallback(
   object_angle_.text = ss.str() + "°" + state_str;
   object_angle_.scale.z = 0.5;
   object_angle_pub_.publish(object_angle_);
+  ROS_INFO_STREAM("Object angle: " << object_angle_.text);
   return;
 }

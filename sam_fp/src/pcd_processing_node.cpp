@@ -5,7 +5,7 @@ int main(int argc, char **argv) {
   ros::init(argc, argv, "pcd_processing_node");
 
   // Create node handle
-  ros::NodeHandle nh;
+  ros::NodeHandle nh("~");
 
   // Create and initialize the pcd_processing object
   pcd_processing pcd_processing_obj(nh);

@@ -5,7 +5,7 @@ int main(int argc, char **argv) {
   ros::init(argc, argv, "wall_detection_node");
 
   // Create node handle
-  ros::NodeHandle nh;
+  ros::NodeHandle nh("~");
 
   // Create and initialize the wall_detection object
   wall_detection wall_detection_obj(nh);

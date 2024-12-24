@@ -266,7 +266,7 @@ void pcd_processing::masksCallback(const masks_msgs::maskID::Ptr &msg) {
 
 std::vector<pcd_processing::singlemask> pcd_processing::maskID_msg_processing(
     const masks_msgs::maskID::Ptr &maskID) {
-  ROS_INFO("mask_msg_preprocessing is triggered.");
+  // ROS_INFO("mask_msg_preprocessing is triggered.");
 
   std::vector<singlemask> masks;
   for (const auto &singlemask_msg : maskID->maskID) {
@@ -287,8 +287,9 @@ std::vector<pcd_processing::singlemask> pcd_processing::maskID_msg_processing(
     masks.push_back(mask);
   }
 
-  ROS_INFO_STREAM("length of masks before erase:");
-  ROS_INFO_STREAM(masks.size());
+  if (enable_metrics_) {
+    ROS_INFO_STREAM("length of masks before erase: " << masks.size());
+  }
 
   // Sort the masks by area
   auto compareArea = [](const singlemask &a, const singlemask &b) {
