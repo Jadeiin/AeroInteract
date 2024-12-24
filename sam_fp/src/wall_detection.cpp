@@ -175,6 +175,6 @@ void wall_detection::objectCallback(
   object_angle_.text = ss.str() + "°" + state_str;
   object_angle_.scale.z = 0.5;
   object_angle_pub_.publish(object_angle_);
-  ROS_INFO_STREAM("Object angle: " << object_angle_.text);
+  ROS_INFO_STREAM("Object angle: " << ss.str() << ", " << state_str);
   return;
 }
