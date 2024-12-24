@@ -39,8 +39,8 @@ class wall_detection {
   sensor_msgs::PointCloud2 cloudmsg_;
   visualization_msgs::Marker wall_marker_;
   visualization_msgs::Marker object_angle_;
-  std::string pointcloud_topic;
-  std::string base_frame;
+  std::string pointcloud_topic_;
+  std::string base_frame_;
   bool enable_metrics_;
 
   // Transformation

@@ -8,7 +8,7 @@ wall_detection::wall_detection(ros::NodeHandle& nh_) : nh(nh_) {
   nh.param<bool>("/enable_metrics", enable_metrics_, false);
 
   // Setup subscribers and publishers
-  point_cloud_sub_ = nh.subscribe(pointcloud_topic, 10,
+  point_cloud_sub_ = nh.subscribe(pointcloud_topic_, 10,
                                    &wall_detection::cloudCallback, this);
   objects_marker_sub_ = nh.subscribe("/objects_marker", 10,
                                       &wall_detection::objectCallback, this);
@@ -69,8 +69,8 @@ void wall_detection::cloudCallback(
   normal_cam.vector.y = coefficients->values[1];
   normal_cam.vector.z = coefficients->values[2];
   try {
-    tf_listener_.transformPoint(base_frame, start_cam, start_base);
-    tf_listener_.transformVector(base_frame, normal_cam, normal_base);
+    tf_listener_.transformPoint(base_frame_, start_cam, start_base);
+    tf_listener_.transformVector(base_frame_, normal_cam, normal_base);
   } catch (tf::TransformException &ex) {
     ROS_ERROR("%s", ex.what());
     return;
@@ -81,7 +81,7 @@ void wall_detection::cloudCallback(
 
   // Publish arrow
   wall_marker_.points.clear();
-  wall_marker_.header.frame_id = base_frame;
+  wall_marker_.header.frame_id = base_frame_;
   wall_marker_.header.stamp = ros::Time::now();
   wall_marker_.ns = "wall_arrow";
   wall_marker_.type = visualization_msgs::Marker::ARROW;
@@ -155,7 +155,7 @@ void wall_detection::objectCallback(
     state_str = front ? "front & right" : "back & left";
   }
 
-  object_angle_.header.frame_id = base_frame;
+  object_angle_.header.frame_id = base_frame_;
   object_angle_.header.stamp = ros::Time::now();
   object_angle_.ns = "object_angle";
   object_angle_.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
