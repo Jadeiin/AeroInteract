@@ -17,7 +17,7 @@ tmux new-window -t $SESSION:4
 # Execute the commands in each window
 tmux send-keys -t $SESSION:0 'roscore' C-m
 tmux send-keys -t $SESSION:1 'cd /rosbag && sleep 5 && rosbag play -l closed.bag' C-m
-tmux send-keys -t $SESSION:2 'cd /workspace/catkin_ws && source devel/setup.bash && rosrun sam_fp samros.py "[a door]"' C-m
+tmux send-keys -t $SESSION:2 'cd /workspace/catkin_ws && source devel/setup.bash && rosrun sam_fp samros.py' C-m
 tmux send-keys -t $SESSION:3 'cd /workspace/catkin_ws && source devel/setup.bash && rosrun sam_fp pcd_processing_node' C-m
 tmux send-keys -t $SESSION:4 'cd /workspace/catkin_ws && source devel/setup.bash && rosrun sam_fp wall_detection_node' C-m
 

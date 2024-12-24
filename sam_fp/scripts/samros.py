@@ -25,9 +25,7 @@ class NanoSAMRos:
         self.img_sub = rospy.Subscriber(
             self.image_topic, SensorImage, self.callback, queue_size=1, buff_size=2**24
         )  # TODO: find image topic from Tiago!
-        self.search_text = rospy.get_param("~search_text", None)
-        if len(sys.argv) > 1:
-            self.search_text = str(sys.argv[1])
+        self.search_text = rospy.get_param("~search_text", "[a door]")
         self.bridge = CvBridge()
         # Load nanoowl and nanosam model
         owl_image_encoder = rospy.get_param(
