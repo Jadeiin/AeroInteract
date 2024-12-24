@@ -22,22 +22,7 @@ class wall_detection {
       cloudPtr;  // Cloud Pointer Type
 
   wall_detection(const std::string &topic = "/background_cloud",
-                 const std::string &frame = "camera_link")
-      : pointcloud_topic(topic), base_frame(frame) {
-    point_cloud_sub_ = nh_.subscribe(pointcloud_topic, 10,
-                                     &wall_detection::cloudCallback, this);
-    objects_marker_sub_ = nh_.subscribe("/objects_marker", 10,
-                                        &wall_detection::objectCallback, this);
-    wall_points_pub_ =
-        nh_.advertise<sensor_msgs::PointCloud2>("/wall_points", 10);
-    wall_marker_pub_ =
-        nh_.advertise<visualization_msgs::Marker>("/wall_marker", 10);
-    object_angle_pub_ =
-        nh_.advertise<visualization_msgs::Marker>("/object_angle", 10);
-    raw_cloud_.reset(new cloud);
-    wall_cloud_.reset(new cloud);
-  }
-
+                 const std::string &frame = "camera_link");
   ~wall_detection() {}
 
  private:

@@ -19,6 +19,9 @@
          value="$(env LD_LIBRARY_PATH):$(arg tensorrt_path)" 
          if="$(eval len(arg('tensorrt_path')) > 0)"/>
 
+    <!-- Set enable_metrics parameter -->
+    <param name="/enable_metrics" value="false"/>
+
     <!-- Camera node -->
     <include file="$(find realsense2_camera)/launch/rs_rgbd.launch">
         <!-- RealSense camera parameters -->

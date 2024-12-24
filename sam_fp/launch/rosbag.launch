@@ -28,6 +28,9 @@
     <!-- Set use_sim_time parameter -->
     <param name="/use_sim_time" value="$(arg use_sim_time)"/>
 
+    <!-- Set enable_metrics parameter -->
+    <param name="/enable_metrics" value="false"/>
+
     <!-- Rosbag play node -->
     <node pkg="rosbag" type="play" name="player" output="screen"
           launch-prefix="bash -c 'sleep $(arg delay); $0 $@'"

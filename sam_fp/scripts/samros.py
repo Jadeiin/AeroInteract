@@ -18,6 +18,7 @@ class NanoSAMRos:
         self.image_topic = rospy.get_param(
             "~image_topic", "/camera/color/image_raw"
         )  # Default is image_raw topic of Tiago robot
+        self.enable_metrics = rospy.get_param("/enable_metrics", False)
         self.mask_pub = rospy.Publisher(
             "/sam_mask", maskID, queue_size=1
         )  # TODO: pub np.ndarray related func: convert_msg() and Pub_mask()
@@ -49,16 +50,18 @@ class NanoSAMRos:
     def infer(self, cv_image):
         rospy.loginfo("inference is triggered.")
         image = Image.fromarray(cv_image)
-        t0 = time.perf_counter_ns()
+        if self.enable_metrics:
+            t0 = time.perf_counter_ns()
         detections = self.owl_predictor.predict(
             image=image,  #! PIL format
             text=self.text,
             text_encodings=self.text_encodings,
             pad_square=False,
         )
-        t1 = time.perf_counter_ns()
-        dt1 = (t1 - t0) / 1e6
-        rospy.loginfo(f"OWL time: {dt1:.3f}ms")
+        if self.enable_metrics:
+            t1 = time.perf_counter_ns()
+            dt1 = (t1 - t0) / 1e6
+            rospy.loginfo(f"OWL time: {dt1:.3f}ms")
 
         num_detections = len(detections.labels)
         if num_detections == 0:
@@ -72,12 +75,14 @@ class NanoSAMRos:
         # TODO: or choose largest one
         points = np.array([[bbox[0], bbox[1]], [bbox[2], bbox[3]]])
         point_labels = np.array([2, 3])
-        t2 = time.perf_counter_ns()
+        if self.enable_metrics:
+            t2 = time.perf_counter_ns()
         self.sam_predictor.set_image(image)  #! PIL format
         mask, _, _ = self.sam_predictor.predict(points, point_labels)
-        t3 = time.perf_counter_ns()
-        dt2 = (t3 - t2) / 1e6
-        rospy.loginfo(f"SAM time: {dt2:.3f}ms")
+        if self.enable_metrics:
+            t3 = time.perf_counter_ns()
+            dt2 = (t3 - t2) / 1e6
+            rospy.loginfo(f"SAM time: {dt2:.3f}ms")
         return (bbox, mask)
 
     # Process the masks and ready to publish
