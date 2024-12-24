@@ -48,7 +48,7 @@ class NanoSAMRos:
         rospy.loginfo("Node has been started.")
 
     def infer(self, cv_image):
-        rospy.loginfo("inference is triggered.")
+        # rospy.loginfo("inference is triggered.")
         image = Image.fromarray(cv_image)
         if self.enable_metrics:
             t0 = time.perf_counter_ns()
@@ -88,7 +88,7 @@ class NanoSAMRos:
     # Process the masks and ready to publish
     def convert_msg(self, results):
         # only single mask in text prompt mode
-        rospy.loginfo("convert_msg is triggered.")
+        # rospy.loginfo("convert_msg is triggered.")
         mask_list = []
         singlemask_msg = singlemask()
         bbox, mask = results
