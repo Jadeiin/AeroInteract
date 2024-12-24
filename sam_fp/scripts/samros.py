@@ -16,7 +16,7 @@ class NanoSAMRos:
     def __init__(self):
         rospy.init_node("sam_node")
         self.image_topic = rospy.get_param(
-            "image_topic", "/camera/color/image_raw"
+            "~image_topic", "/camera/color/image_raw"
         )  # Default is image_raw topic of Tiago robot
         self.mask_pub = rospy.Publisher(
             "/sam_mask", maskID, queue_size=1
@@ -25,19 +25,19 @@ class NanoSAMRos:
         self.img_sub = rospy.Subscriber(
             self.image_topic, SensorImage, self.callback, queue_size=1, buff_size=2**24
         )  # TODO: find image topic from Tiago!
-        self.search_text = rospy.get_param("search_text", None)
+        self.search_text = rospy.get_param("~search_text", None)
         if len(sys.argv) > 1:
             self.search_text = str(sys.argv[1])
         self.bridge = CvBridge()
         # Load nanoowl and nanosam model
         owl_image_encoder = rospy.get_param(
-            "owl_image_encoder", "/opt/nanoowl/data/owl_image_encoder_patch32.engine"
+            "~owl_image_encoder", "/opt/nanoowl/data/owl_image_encoder_patch32.engine"
         )
         sam_image_encoder = rospy.get_param(
-            "sam_image_encoder", "/opt/nanosam/data/resnet18_image_encoder.engine"
+            "~sam_image_encoder", "/opt/nanosam/data/resnet18_image_encoder.engine"
         )
         sam_mask_decoder = rospy.get_param(
-            "sam_mask_decoder", "/opt/nanosam/data/mobile_sam_mask_decoder.engine"
+            "~sam_mask_decoder", "/opt/nanosam/data/mobile_sam_mask_decoder.engine"
         )
         self.owl_predictor = OwlPredictor(image_encoder_engine=owl_image_encoder)
         rospy.loginfo("nanoowl model has been loaded.")

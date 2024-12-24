@@ -3,9 +3,9 @@
     <!-- Launch arguments -->
     <arg name="search_text" default="[a door]" doc="Text prompt for SAM"/>
     <arg name="image_topic" default="/oak/rgb/image_raw" doc="RGB image topic"/>
-    <arg name="owl_image_encoder" default="" doc="Path to OWL image encoder model"/>
-    <arg name="sam_image_encoder" default="" doc="Path to SAM image encoder model"/>
-    <arg name="sam_mask_decoder" default="" doc="Path to SAM mask decoder model"/>
+    <arg name="owl_image_encoder" default="/opt/nanoowl/data/owl_image_encoder_patch32.engine" doc="Path to OWL image encoder model"/>
+    <arg name="sam_image_encoder" default="/opt/nanosam/data/resnet18_image_encoder.engine" doc="Path to SAM image encoder model"/>
+    <arg name="sam_mask_decoder" default="/opt/nanosam/data/mobile_sam_mask_decoder.engine" doc="Path to SAM mask decoder model"/>
     <arg name="point_cloud_topic" default="/oak/points" doc="Point cloud topic"/>
     <arg name="camera_frame" default="oak-d-base-frame" doc="Camera frame ID"/>
     <arg name="start_rviz" default="true" doc="Start RViz"/>
