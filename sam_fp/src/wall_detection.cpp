@@ -213,9 +213,12 @@ void wall_detection::calculateStats() {
   double sq_sum =
       std::inner_product(angle_samples_.begin(), angle_samples_.end(),
                          angle_samples_.begin(), 0.0, std::plus<double>(),
-                         [](double a, double b) { return (a - b) * (a - b); });
+                         [this](double a, double b) {
+                           return (a - mean_angle_) * (b - mean_angle_);
+                         });
 
-  std_dev_ = std::sqrt(sq_sum / angle_samples_.size());
+  // Use n-1 for sample standard deviation (Bessel's correction)
+  std_dev_ = std::sqrt(sq_sum / (angle_samples_.size() - 1));
 
   // Calculate error margin using Central Limit Theorem
   // Error Margin = Z * (σ / √n)
