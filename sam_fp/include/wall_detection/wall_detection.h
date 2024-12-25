@@ -12,6 +12,9 @@
 #include <visualization_msgs/Marker.h>
 #include <visualization_msgs/MarkerArray.h>
 
+#include <numeric>
+#include <vector>
+
 class wall_detection {
  public:
   // Alias:
@@ -21,12 +24,13 @@ class wall_detection {
   typedef pcl::PointCloud<pcl::PointXYZRGB>::Ptr
       cloudPtr;  // Cloud Pointer Type
 
-  wall_detection(ros::NodeHandle& nh_);
+  wall_detection(ros::NodeHandle &nh_);
   ~wall_detection() {}
 
  private:
   void cloudCallback(const sensor_msgs::PointCloud2ConstPtr &msg);
   void objectCallback(const visualization_msgs::MarkerArrayConstPtr &msg);
+  void calculateStats();
   ros::NodeHandle nh;
   ros::Subscriber point_cloud_sub_;
   ros::Subscriber objects_marker_sub_;
@@ -46,6 +50,14 @@ class wall_detection {
   // Transformation
   tf::TransformListener
       tf_listener_;  //!< Access ros tf tree to get frame transformations
+
+  // Statistics
+  std::vector<double> angle_samples_;
+  double mean_angle_;
+  double std_dev_;
+  double error_margin_;  // For 95% confidence interval
+  static constexpr int MAX_SAMPLES = 50;  // Store last 50 samples
+  static constexpr double Z_SCORE_95 = 1.96;  // Z-score for 95% confidence level
 };
 
 #endif

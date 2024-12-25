@@ -1,20 +1,23 @@
 #include "wall_detection/wall_detection.h"
 
 // Constructor
-wall_detection::wall_detection(ros::NodeHandle& nh_) : nh(nh_) {
+wall_detection::wall_detection(ros::NodeHandle &nh_) : nh(nh_) {
   // Get parameters from the parameter server
-  nh.param<std::string>("pointcloud_topic", pointcloud_topic_, "/background_cloud");
+  nh.param<std::string>("pointcloud_topic", pointcloud_topic_,
+                        "/background_cloud");
   nh.param<std::string>("base_frame", base_frame_, "camera_link");
   nh.param<bool>("/enable_metrics", enable_metrics_, false);
 
   // Setup subscribers and publishers
-  point_cloud_sub_ = nh.subscribe(pointcloud_topic_, 10,
-                                   &wall_detection::cloudCallback, this);
+  point_cloud_sub_ =
+      nh.subscribe(pointcloud_topic_, 10, &wall_detection::cloudCallback, this);
   objects_marker_sub_ = nh.subscribe("/objects_marker", 10,
-                                      &wall_detection::objectCallback, this);
+                                     &wall_detection::objectCallback, this);
   wall_points_pub_ = nh.advertise<sensor_msgs::PointCloud2>("/wall_points", 10);
-  wall_marker_pub_ = nh.advertise<visualization_msgs::Marker>("/wall_marker", 10);
-  object_angle_pub_ = nh.advertise<visualization_msgs::Marker>("/object_angle", 10);
+  wall_marker_pub_ =
+      nh.advertise<visualization_msgs::Marker>("/wall_marker", 10);
+  object_angle_pub_ =
+      nh.advertise<visualization_msgs::Marker>("/object_angle", 10);
 
   // Initialize pointers
   raw_cloud_.reset(new cloud);
@@ -147,6 +150,16 @@ void wall_detection::objectCallback(
     ROS_INFO_STREAM("Euler angles: " << euler_angles);
   }
   double angle = euler_angles[0];
+
+  // Add the new angle to samples
+  angle_samples_.push_back(std::abs(angle));
+  if (angle_samples_.size() > MAX_SAMPLES) {
+    angle_samples_.erase(angle_samples_.begin());
+  }
+
+  // Calculate statistics
+  calculateStats();
+
   int front = object_centroid[0] < wall_centroid[0];
   std::string state_str;
   //! FIXME: make sure the angle is in the range of [0, pi/2] and correct
@@ -171,10 +184,40 @@ void wall_detection::objectCallback(
   object_angle_.color.b = 1.0f;
   object_angle_.color.a = 1.0;
   std::stringstream ss;
-  ss << std::fixed << std::setprecision(2) << (abs(angle) * 180 / M_PI);
-  object_angle_.text = ss.str() + "°" + state_str;
+  ss << std::fixed << std::setprecision(2) << (abs(angle) * 180 / M_PI)
+     << "°, " << state_str << "\nMean: " << (mean_angle_ * 180 / M_PI)
+     << "°"
+     << "\nStd Dev: " << (std_dev_ * 180 / M_PI) << "°"
+     << "\nError Margin: ±" << (error_margin_ * 180 / M_PI) << "°";
+  object_angle_.text = ss.str();
   object_angle_.scale.z = 0.5;
   object_angle_pub_.publish(object_angle_);
-  ROS_INFO_STREAM("Object angle: " << ss.str() << ", " << state_str);
+  ROS_INFO_STREAM("Object angle stats: " << ss.str());
   return;
+}
+
+void wall_detection::calculateStats() {
+  if (angle_samples_.empty()) {
+    mean_angle_ = 0.0;
+    std_dev_ = 0.0;
+    error_margin_ = 0.0;
+    return;
+  }
+
+  // Calculate mean
+  mean_angle_ =
+      std::accumulate(angle_samples_.begin(), angle_samples_.end(), 0.0) /
+      angle_samples_.size();
+
+  // Calculate standard deviation
+  double sq_sum =
+      std::inner_product(angle_samples_.begin(), angle_samples_.end(),
+                         angle_samples_.begin(), 0.0, std::plus<double>(),
+                         [](double a, double b) { return (a - b) * (a - b); });
+
+  std_dev_ = std::sqrt(sq_sum / angle_samples_.size());
+
+  // Calculate error margin using Central Limit Theorem
+  // Error Margin = Z * (σ / √n)
+  error_margin_ = Z_SCORE_95 * (std_dev_ / std::sqrt(angle_samples_.size()));
 }

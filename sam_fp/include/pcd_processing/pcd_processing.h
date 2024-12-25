@@ -54,7 +54,7 @@ class pcd_processing {
   typedef pcl::PointCloud<pcl::PointXYZRGB>::Ptr
       cloudPtr;  // Cloud Pointer Type
 
-  pcd_processing(ros::NodeHandle& nh_);
+  pcd_processing(ros::NodeHandle &nh_);
   ~pcd_processing() {}
 
   /**

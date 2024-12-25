@@ -1,9 +1,10 @@
 #include "pcd_processing/pcd_processing.h"
 
 // Constructor
-pcd_processing::pcd_processing(ros::NodeHandle& nh_) : nh(nh_) {
+pcd_processing::pcd_processing(ros::NodeHandle &nh_) : nh(nh_) {
   // Get parameters from the parameter server
-  nh.param<std::string>("pointcloud_topic", pointcloud_topic_, "/camera/depth_registered/points");
+  nh.param<std::string>("pointcloud_topic", pointcloud_topic_,
+                        "/camera/depth_registered/points");
   nh.param<std::string>("base_frame", base_frame_, "camera_link");
   nh.param<bool>("/enable_metrics", enable_metrics_, false);
 
@@ -45,7 +46,7 @@ void pcd_processing::update(const ros::Time &time) {
     if (enable_metrics_) {
       ros::Time end = ros::Time::now();
       ROS_INFO_STREAM("Raw cloud preprocessing time: " << (end - start).toNSec()
-                                                     << " ns");
+                                                       << " ns");
     }
 
     // Cut the preprocessed cloud //TODO: pass the argument
@@ -69,7 +70,7 @@ void pcd_processing::update(const ros::Time &time) {
     if (enable_metrics_) {
       ros::Time end = ros::Time::now();
       ROS_INFO_STREAM("Segmenting plane time: " << (end - start).toNSec()
-                                               << " ns");
+                                                << " ns");
     }
 
     // Publish the objects cloud
