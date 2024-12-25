@@ -152,6 +152,11 @@ void wall_detection::objectCallback(
   double angle = euler_angles[0];
 
   // Add the new angle to samples
+  // TODO: check if the angle is an outlier
+  // Normalize angles close to ±180° to be close to 0°
+  if (std::abs(angle) > M_PI/2) {
+      angle = (angle > 0) ? M_PI - angle : -M_PI - angle;
+  }
   angle_samples_.push_back(std::abs(angle));
   if (angle_samples_.size() > MAX_SAMPLES) {
     angle_samples_.erase(angle_samples_.begin());
