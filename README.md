@@ -38,7 +38,14 @@ build the ROS package. Change the corresponding camera topic, engine path, text 
 ```
 ln -s sam_ros/tools/*.sh .
 cd catkin_ws && catkin_make && cd ..
+# use tmux for better logging
 bash ros.sh; bash vnc.sh
+# or use roslaunch
+source devel/setup.bash; roslaunch sam_fp rosbag.launch
+# add parameters as needed, like
+roslaunch sam_fp rosbag.launch bag_file:=out-15.bag
+roslaunch sam_fp rosbag.launch bag_file:=1.bag image_topic:=/oak/rgb/image_raw point_cloud_topic:=/oak/points camera_frame:=oak-d-base-frame rviz_config:='$(find sam_fp)/rviz/oak-d.rviz'
+
 ```
 
 ## Jetson Platform Deployment
@@ -57,3 +64,11 @@ jetson-containers build sam_ros:base --package-dirs=/path/to/sam_ros/tools
 # --skip-tests all
 # Or you want test all packages, HTTP_PROXY & HTTPS_PROXY can be set
 ```
+
+## TODO
+
+- [x] add metrics option
+- [x] add code documentation
+- [ ] move masks_msgs package to sam_fp
+- [ ] use nodelet
+- [ ] migrate to ROS2
