@@ -15,7 +15,7 @@ ENV ROS_PYTHON_VERSION=3
 WORKDIR /workspace
 
 ARG SAMROS_REPO="https://git.qunn.eu/poesty/sam_ros" \
-    SAMROS_BRANCH=wall_detection
+    SAMROS_BRANCH=develop
 
 # RUN apt-get update && apt-get install -y --no-install-recommends \
 #     libpcl-dev && \
