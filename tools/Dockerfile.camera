@@ -41,6 +41,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN mkdir -p /workspace/catkin_ws/src && \
     git clone --branch=main --depth=1 https://github.com/orbbec/OrbbecSDK_ROS1.git /opt/orbbec_camera && \
     git clone --branch=${SAMROS_BRANCH} ${SAMROS_REPO} /opt/sam_ros && \
+    # add ordered_pc arg and param in femto_bolt launch file at line 14 and 77
+    sed -i '14i \ \ \ \ <arg name="ordered_pc" default="true" />' /opt/orbbec_camera/launch/femto_bolt.launch && \
+    sed -i '77i \ \ \ \ \ \ \ \ \ \ \ \ <param name="ordered_pc" value="$(arg ordered_pc)" />' /opt/orbbec_camera/launch/femto_bolt.launch && \
     ln -s /opt/orbbec_camera /workspace/catkin_ws/src && \
     ln -s /opt/sam_ros /workspace/catkin_ws/src && \
     /bin/bash -c 'cd /workspace/catkin_ws; source /opt/ros/${ROS_DISTRO}/setup.bash; catkin_make'
