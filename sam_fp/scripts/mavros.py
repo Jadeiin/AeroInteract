@@ -8,7 +8,7 @@ import tf2_geometry_msgs
 from geometry_msgs.msg import PoseStamped, Point, Vector3, TransformStamped
 from visualization_msgs.msg import MarkerArray
 from mavros_msgs.msg import State
-from mavros_msgs.srv import CommandBool, SetMode
+from mavros_msgs.srv import CommandBool, SetMode, CommandLong
 
 
 class DoorTraverseNode:
@@ -79,6 +79,7 @@ class DoorTraverseNode:
         rospy.wait_for_service("mavros/set_mode")
         self.arming_client = rospy.ServiceProxy("mavros/cmd/arming", CommandBool)
         self.set_mode_client = rospy.ServiceProxy("mavros/set_mode", SetMode)
+        self.cmd_client = rospy.ServiceProxy("mavros/cmd/command", CommandLong)
 
     def _setup_tf(self):
         """Setup TF2 for frame transformations."""
@@ -296,6 +297,38 @@ class DoorTraverseNode:
             self.execution_state = "TRAVERSE"
             rospy.loginfo("Starting door traverse")
 
+    def _set_speed(self, scale, speed_type=1):
+        """Send MAV_CMD_DO_CHANGE_SPEED command.
+
+        Args:
+            scale (float): Speed scale factor between 0.0 and 1.0
+            speed_type (int, optional): 0=airspeed, 1=groundspeed, 2=climb speed, 3=descent speed.
+                                      Defaults to groundspeed.
+        """
+        # MAV_CMD_DO_CHANGE_SPEED parameters:
+        # param1: speed type
+        # param2: speed in m/s
+        # param3: -1 (no change to throttle)
+        # param4: absolute or relative [0=absolute, 1=relative]
+        try:
+            # Clamp scale between 0 and 1
+            scale = max(0.0, min(1.0, scale))
+            speed = self.TRAVERSE_SPEED * scale
+
+            self.cmd_client(
+                command=178,  # MAV_CMD_DO_CHANGE_SPEED
+                param1=float(speed_type),
+                param2=float(speed),
+                param3=-1.0,
+                param4=0.0,
+                param5=0.0,
+                param6=0.0,
+                param7=0.0,
+            )
+            rospy.loginfo(f"Speed scale set to {scale:.2f} ({speed:.2f} m/s)")
+        except rospy.ServiceException as e:
+            rospy.logerr(f"Speed change failed: {e}")
+
     def _handle_traverse_state(self):
         """Execute door traversal using pre-calculated waypoints."""
         if not self.traverse_waypoints:
@@ -305,6 +338,20 @@ class DoorTraverseNode:
 
         start_pos, end_pos, traverse_height = self.traverse_waypoints
         current_pos = self.current_pose.pose.position
+
+        # Calculate distance to end point and normalize to get speed scale
+        distance_to_end = self._calculate_distance(current_pos, end_pos)
+
+        # Adjust speed scale based on distance to end point
+        if distance_to_end > 2.0:
+            # Full speed when far from door
+            self._set_speed(1.0)
+        elif distance_to_end > 1.0:
+            # 50% speed when approaching door
+            self._set_speed(0.5)
+        else:
+            # 25% speed for final approach
+            self._set_speed(0.25)
 
         # Create next setpoint
         target = Point()
@@ -316,7 +363,7 @@ class DoorTraverseNode:
         target.z = traverse_height
 
         # Check if we've reached the end
-        if self._calculate_distance(current_pos, end_pos) < step_size:
+        if distance_to_end < step_size:
             target = end_pos
             rospy.loginfo("Traverse complete")
             # Could transition to a new state here
