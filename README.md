@@ -67,8 +67,14 @@ jetson-containers build sam_ros:base --package-dirs=/path/to/sam_ros/tools
 
 ## TODO
 
+- [x] publish door location & interaction point/vector (for nav use): use "/objects_marker"
+- [ ] add trajectory planning
+- [ ] add simulation (e.g. Gazebo)
+
 - [x] add metrics option
 - [x] add code documentation
+- [ ] add build pipeline
 - [ ] move masks_msgs package to sam_fp
+- [ ] use cuPCL
 - [ ] use nodelet
 - [ ] migrate to ROS2

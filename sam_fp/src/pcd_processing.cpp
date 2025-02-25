@@ -153,6 +153,7 @@ bool pcd_processing::cut_point_cloud(cloudPtr &input,
     extract.setNegative(false);
     extract.filter(*objects);
     // Extract the points from the background cloud
+    // TODO: Implement the logic to extract the actual points of the door frame (rather than wall)
     extract.setNegative(true);
     extract.filter(*background);
   }
