@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+    <!-- Launch arguments -->
+    <arg name="search_text" default="[a door]" doc="Text prompt for SAM"/>
+    <arg name="image_topic" doc="RGB image topic"/>
+    <arg name="point_cloud_topic" doc="Point cloud topic"/>
+    <arg name="camera_frame" doc="Camera frame ID"/>
+    
+    <!-- Model paths -->
+    <arg name="owl_image_encoder" default="/opt/nanoowl/data/owl_image_encoder_patch32.engine" doc="Path to OWL image encoder model"/>
+    <arg name="sam_image_encoder" default="/opt/nanosam/data/resnet18_image_encoder.engine" doc="Path to SAM image encoder model"/>
+    <arg name="sam_mask_decoder" default="/opt/nanosam/data/mobile_sam_mask_decoder.engine" doc="Path to SAM mask decoder model"/>
+    
+    <!-- RViz configuration -->
+    <arg name="start_rviz" default="true" doc="Start RViz"/>
+    <arg name="rviz_config" doc="RViz config file"/>
+    
+    <!-- System configuration -->
+    <arg name="tensorrt_path" default="" doc="TensorRT library path"/>
+    <arg name="hf_endpoint" default="https://hf-mirror.com" doc="Hugging Face endpoint URL"/>
+
+    <!-- Environment variables -->
+    <env name="HF_ENDPOINT" value="$(arg hf_endpoint)"/>
+    <env name="LD_LIBRARY_PATH" 
+         value="$(env LD_LIBRARY_PATH):$(arg tensorrt_path)" 
+         if="$(eval len(arg('tensorrt_path')) > 0)"/>
+
+    <!-- Set enable_metrics parameter -->
+    <param name="/enable_metrics" value="false"/>
+
+    <!-- SAM node -->
+    <node name="sam_node" pkg="sam_fp" type="samros.py" output="screen">
+        <param name="search_text" value="$(arg search_text)"/>
+        <param name="image_topic" value="$(arg image_topic)"/>
+        <param name="owl_image_encoder" value="$(arg owl_image_encoder)"/>
+        <param name="sam_image_encoder" value="$(arg sam_image_encoder)"/>
+        <param name="sam_mask_decoder" value="$(arg sam_mask_decoder)"/>
+    </node>
+
+    <!-- Point cloud processing node -->
+    <node name="pcd_processing_node" pkg="sam_fp" type="pcd_processing_node" output="screen">
+        <param name="pointcloud_topic" value="$(arg point_cloud_topic)"/>
+        <param name="base_frame" value="$(arg camera_frame)"/>
+    </node>
+
+    <!-- Wall detection node -->
+    <node name="wall_detection_node" pkg="sam_fp" type="wall_detection_node" output="screen">
+        <param name="pointcloud_topic" value="/background_cloud"/>
+        <param name="base_frame" value="$(arg camera_frame)"/>
+    </node>
+
+    <!-- RViz -->
+    <node if="$(arg start_rviz)" 
+          name="rviz" pkg="rviz" type="rviz" 
+          args="-d $(arg rviz_config)" 
+          output="screen"/>
+</launch>
