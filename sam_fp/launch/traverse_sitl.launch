@@ -26,7 +26,7 @@
 
     <!-- Visualization -->
     <arg name="start_rviz" default="true" doc="Start RViz"/>
-    <arg name="rviz_config" default="$(find sam_fp)/rviz/traverse.rviz" doc="RViz config file"/>
+    <arg name="rviz_config" default="$(find sam_fp)/rviz/traverse_sitl.rviz" doc="RViz config file"/>
 
     <!-- Launch PX4 SITL with MAVROS -->
     <include file="$(find px4)/launch/mavros_posix_sitl.launch">
