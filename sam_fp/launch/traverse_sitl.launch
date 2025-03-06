@@ -3,8 +3,8 @@
     <!-- Launch arguments -->
     <!-- SAM and sensor arguments -->
     <arg name="search_text" default="[a door]" doc="Text prompt for SAM"/>
-    <arg name="image_topic" default="/camera/rgb/image_raw" doc="RGB image topic"/>
-    <arg name="point_cloud_topic" default="/camera/depth/points" doc="Point cloud topic"/>
+    <arg name="image_topic" default="/iris_depth_camera/camera/rgb/image_raw" doc="RGB image topic"/>
+    <arg name="point_cloud_topic" default="/iris_depth_camera/camera/depth/points" doc="Point cloud topic"/>
     <arg name="camera_frame" default="camera_link" doc="Camera frame ID"/>
 
     <!-- PX4 SITL and Gazebo arguments -->
@@ -22,6 +22,9 @@
 
     <!-- Launch PX4 SITL with MAVROS -->
     <include file="$(find px4)/launch/mavros_posix_sitl.launch">
+        <arg name="x" value="2"/>
+        <arg name="y" value="4"/>
+        <arg name="yaw" value="-1.5708"/>
         <arg name="vehicle" value="$(arg vehicle)"/>
         <arg name="sdf" value="$(arg sdf)"/>
         <arg name="world" value="$(arg world)"/>
