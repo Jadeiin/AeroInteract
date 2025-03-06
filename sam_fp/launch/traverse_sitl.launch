@@ -10,7 +10,7 @@
     <!-- PX4 SITL and Gazebo arguments -->
     <arg name="vehicle" default="iris_depth_camera"/>
     <arg name="world" default="$(find sam_fp)/worlds/door.world"/>
-    <arg name="sdf" default="$(find px4)/Tools/sitl_gazebo/models/$(arg vehicle)/$(arg vehicle).sdf"/>
+    <arg name="sdf" default="$(find mavlink_sitl_gazebo)/models/$(arg vehicle)/$(arg vehicle).sdf"/>
     <arg name="gui" default="true"/>
     <arg name="debug" default="false"/>
     <arg name="verbose" default="false"/>
