@@ -1,9 +1,14 @@
 import rospy
 import math
 import time
-import tf2_ros
-import tf2_geometry_msgs
-from geometry_msgs.msg import PoseStamped, Point, Vector3, TransformStamped
+import tf
+from geometry_msgs.msg import (
+    PoseStamped,
+    Point,
+    Vector3,
+    TransformStamped,
+    PointStamped,
+)
 from visualization_msgs.msg import MarkerArray
 from mavros_msgs.msg import State
 from mavros_msgs.srv import CommandBool, SetMode, CommandLong
@@ -80,11 +85,10 @@ class DoorTraverseNode:
         self.cmd_client = rospy.ServiceProxy("mavros/cmd/command", CommandLong)
 
     def _setup_tf(self):
-        """Setup TF2 for frame transformations."""
+        """Setup TF listener for frame transformations."""
         # TODO: check if transfrom further needed
         # ref: https://github.com/thien94/vision_to_mavros
-        self.tf_buffer = tf2_ros.Buffer()
-        self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
+        self.tf_listener = tf.TransformListener()
 
     #
     # Callback Methods
@@ -117,12 +121,13 @@ class DoorTraverseNode:
                     marker.points[1], "camera_link"
                 )
 
-                point1_map = self.tf_buffer.transform(
-                    point1_camera, "map", rospy.Duration(1.0)
+                # Wait for transform to be available
+                self.tf_listener.waitForTransform(
+                    "map", "camera_link", rospy.Time(0), rospy.Duration(1.0)
                 )
-                point2_map = self.tf_buffer.transform(
-                    point2_camera, "map", rospy.Duration(1.0)
-                )
+
+                point1_map = self.tf_listener.transformPoint("map", point1_camera)
+                point2_map = self.tf_listener.transformPoint("map", point2_camera)
 
                 self.door_center = point1_map.point
                 self.door_normal = self._calculate_normal_vector(
@@ -131,9 +136,9 @@ class DoorTraverseNode:
                 self.last_door_detection = rospy.Time.now()
 
             except (
-                tf2_ros.LookupException,
-                tf2_ros.ConnectivityException,
-                tf2_ros.ExtrapolationException,
+                tf.LookupException,
+                tf.ConnectivityException,
+                tf.ExtrapolationException,
             ) as e:
                 rospy.logwarn(f"TF Error: {e}")
 
@@ -184,7 +189,7 @@ class DoorTraverseNode:
 
     def _create_point_stamped(self, point, frame_id):
         """Create a PointStamped message with header."""
-        point_stamped = tf2_geometry_msgs.PointStamped()
+        point_stamped = PointStamped()
         point_stamped.header.frame_id = frame_id
         point_stamped.header.stamp = rospy.Time.now()
         point_stamped.point = point
