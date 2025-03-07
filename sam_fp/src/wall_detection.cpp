@@ -154,8 +154,8 @@ void wall_detection::objectCallback(
   // Add the new angle to samples
   // TODO: check if the angle is an outlier
   // Normalize angles close to ±180° to be close to 0°
-  if (std::abs(angle) > M_PI/2) {
-      angle = (angle > 0) ? M_PI - angle : -M_PI - angle;
+  if (std::abs(angle) > M_PI / 2) {
+    angle = (angle > 0) ? M_PI - angle : -M_PI - angle;
   }
   angle_samples_.push_back(std::abs(angle));
   if (angle_samples_.size() > MAX_SAMPLES) {
@@ -189,15 +189,16 @@ void wall_detection::objectCallback(
   object_angle_.color.b = 1.0f;
   object_angle_.color.a = 1.0;
   std::stringstream ss;
-  ss << std::fixed << std::setprecision(2) << (abs(angle) * 180 / M_PI)
-     << "°, " << state_str << "\nMean: " << (mean_angle_ * 180 / M_PI)
-     << "°"
+  ss << std::fixed << std::setprecision(2) << (abs(angle) * 180 / M_PI) << "°, "
+     << state_str << "\nMean: " << (mean_angle_ * 180 / M_PI) << "°"
      << "\nStd Dev: " << (std_dev_ * 180 / M_PI) << "°"
      << "\nError Margin: ±" << (error_margin_ * 180 / M_PI) << "°";
   object_angle_.text = ss.str();
   object_angle_.scale.z = 0.5;
   object_angle_pub_.publish(object_angle_);
-  ROS_INFO_STREAM("Object angle stats: " << ss.str());
+  if (enable_metrics_) {
+    ROS_INFO_STREAM("Object angle stats: " << ss.str());
+  }
   return;
 }
 
@@ -215,12 +216,11 @@ void wall_detection::calculateStats() {
       angle_samples_.size();
 
   // Calculate standard deviation
-  double sq_sum =
-      std::inner_product(angle_samples_.begin(), angle_samples_.end(),
-                         angle_samples_.begin(), 0.0, std::plus<double>(),
-                         [this](double a, double b) {
-                           return (a - mean_angle_) * (b - mean_angle_);
-                         });
+  double sq_sum = std::inner_product(
+      angle_samples_.begin(), angle_samples_.end(), angle_samples_.begin(), 0.0,
+      std::plus<double>(), [this](double a, double b) {
+        return (a - mean_angle_) * (b - mean_angle_);
+      });
 
   // Use n-1 for sample standard deviation (Bessel's correction)
   std_dev_ = std::sqrt(sq_sum / (angle_samples_.size() - 1));

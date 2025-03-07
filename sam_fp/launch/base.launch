@@ -5,28 +5,29 @@
     <arg name="image_topic" doc="RGB image topic"/>
     <arg name="point_cloud_topic" doc="Point cloud topic"/>
     <arg name="camera_frame" doc="Camera frame ID"/>
-    
+
     <!-- Model paths -->
     <arg name="owl_image_encoder" default="/opt/nanoowl/data/owl_image_encoder_patch32.engine" doc="Path to OWL image encoder model"/>
     <arg name="sam_image_encoder" default="/opt/nanosam/data/resnet18_image_encoder.engine" doc="Path to SAM image encoder model"/>
     <arg name="sam_mask_decoder" default="/opt/nanosam/data/mobile_sam_mask_decoder.engine" doc="Path to SAM mask decoder model"/>
-    
+
     <!-- RViz configuration -->
     <arg name="start_rviz" default="true" doc="Start RViz"/>
     <arg name="rviz_config" doc="RViz config file"/>
-    
+
     <!-- System configuration -->
     <arg name="tensorrt_path" default="" doc="TensorRT library path"/>
     <arg name="hf_endpoint" default="https://hf-mirror.com" doc="Hugging Face endpoint URL"/>
+    <arg name="enable_metrics" default="false" doc="Enable metrics"/>
 
     <!-- Environment variables -->
     <env name="HF_ENDPOINT" value="$(arg hf_endpoint)"/>
-    <env name="LD_LIBRARY_PATH" 
-         value="$(env LD_LIBRARY_PATH):$(arg tensorrt_path)" 
+    <env name="LD_LIBRARY_PATH"
+         value="$(env LD_LIBRARY_PATH):$(arg tensorrt_path)"
          if="$(eval len(arg('tensorrt_path')) > 0)"/>
 
     <!-- Set enable_metrics parameter -->
-    <param name="/enable_metrics" value="false"/>
+    <param name="/enable_metrics" type="bool" value="$(arg enable_metrics)"/>
 
     <!-- SAM node -->
     <node name="sam_node" pkg="sam_fp" type="samros.py" output="screen">
@@ -50,8 +51,8 @@
     </node>
 
     <!-- RViz -->
-    <node if="$(arg start_rviz)" 
-          name="rviz" pkg="rviz" type="rviz" 
-          args="-d $(arg rviz_config)" 
+    <node if="$(arg start_rviz)"
+          name="rviz" pkg="rviz" type="rviz"
+          args="-d $(arg rviz_config)"
           output="screen"/>
 </launch>
