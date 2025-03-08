@@ -64,8 +64,9 @@
           launch-prefix="bash -c 'sleep 5; $0 $@'"/>
 
     <!-- TF tree configuration -->
+    <!-- remember to edit px4_config.yaml to publish local_position-->
     <node pkg="tf" type="static_transform_publisher" name="camera_transform"
-          args="0.1 0 0.05 0 0 0 base_link $(arg camera_frame) 100"/>
+          args="0.1 0 0 0 0 0 base_link $(arg camera_frame) 100"/>
     <node pkg="tf" type="static_transform_publisher" name="map_transform"
           args="0 0 0 0 0 0 map odom 100"/>
 

@@ -115,15 +115,15 @@ class DoorTraverseNode:
             # Transform points from camera_link to map frame
             try:
                 point1_camera = self._create_point_stamped(
-                    marker.points[0], "camera_link"
+                    marker.points[0], "camera_link", marker.header.stamp
                 )
                 point2_camera = self._create_point_stamped(
-                    marker.points[1], "camera_link"
+                    marker.points[1], "camera_link", marker.header.stamp
                 )
 
                 # Wait for transform to be available
                 self.tf_listener.waitForTransform(
-                    "map", "camera_link", rospy.Time(0), rospy.Duration(1.0)
+                    "map", "camera_link", rospy.Time(), rospy.Duration(1.0)
                 )
 
                 point1_map = self.tf_listener.transformPoint("map", point1_camera)
@@ -169,13 +169,13 @@ class DoorTraverseNode:
             return False
         return True
 
-    def _publish_setpoint(self, position, orientation=None):
+    def _publish_setpoint(self, position, orientation=None, stamp=None):
         """Publish a setpoint position."""
         # TODO: use setpoint_raw instead of setpoint_position
         # This will allow for more control over velocity, acceleration and yaw
         # original thought was to use setpoint_position and setpoint_velocity
         pose = PoseStamped()
-        pose.header.stamp = rospy.Time.now()
+        pose.header.stamp = stamp if stamp else rospy.Time.now()
         pose.header.frame_id = "map"
         pose.pose.position = position
         pose.pose.orientation = (
@@ -187,11 +187,11 @@ class DoorTraverseNode:
     # Navigation Helper Methods
     #
 
-    def _create_point_stamped(self, point, frame_id):
+    def _create_point_stamped(self, point, frame_id, stamp=None):
         """Create a PointStamped message with header."""
         point_stamped = PointStamped()
         point_stamped.header.frame_id = frame_id
-        point_stamped.header.stamp = rospy.Time.now()
+        point_stamped.header.stamp = stamp if stamp else rospy.Time.now()
         point_stamped.point = point
         return point_stamped
 
