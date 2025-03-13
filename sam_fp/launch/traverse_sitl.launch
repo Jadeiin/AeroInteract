@@ -3,14 +3,16 @@
     <!-- Launch arguments -->
     <!-- SAM and sensor arguments -->
     <arg name="search_text" default="[a door]" doc="Text prompt for SAM"/>
-    <arg name="image_topic" default="/iris_depth_camera/camera/rgb/image_raw" doc="RGB image topic"/>
-    <arg name="point_cloud_topic" default="/iris_depth_camera/camera/depth/points" doc="Point cloud topic"/>
+    <arg name="image_topic" default="/camera/color/image_raw" doc="RGB image topic"/>
+    <arg name="point_cloud_topic" default="/camera/depth/color/points" doc="Point cloud topic"/>
     <arg name="camera_frame" default="camera_link" doc="Camera frame ID"/>
+    <arg name="depth_frame" default="D435i::camera_depth_frame" doc="Depth frame ID"/>
 
     <!-- PX4 SITL and Gazebo arguments -->
-    <arg name="vehicle" default="iris_depth_camera"/>
+    <arg name="vehicle" default="iris"/>
+    <arg name="vehicle_model" default="iris_D435i"/>
     <arg name="world" default="$(find sam_fp)/worlds/door.world"/>
-    <arg name="sdf" default="$(find mavlink_sitl_gazebo)/models/$(arg vehicle)/$(arg vehicle).sdf"/>
+    <arg name="sdf" default="$(find mavlink_sitl_gazebo)/models/$(arg vehicle_model)/$(arg vehicle_model).sdf"/>
     <arg name="gui" default="true"/>
     <arg name="debug" default="false"/>
     <arg name="verbose" default="false"/>
@@ -66,7 +68,9 @@
     <!-- TF tree configuration -->
     <!-- remember to edit px4_config.yaml to publish local_position-->
     <node pkg="tf" type="static_transform_publisher" name="camera_transform"
-          args="0.1 0 0 0 0 0 base_link $(arg camera_frame) 100"/>
+          args="0.12 0 0 0 0 0 base_link $(arg camera_frame) 100"/>
+    <node pkg="tf" type="static_transform_publisher" name="depth_frame_transform"
+          args="0 0 0 -1.57 0 -1.57 $(arg camera_frame) $(arg depth_frame) 100"/>
     <node pkg="tf" type="static_transform_publisher" name="map_transform"
           args="0 0 0 0 0 0 map odom 100"/>
 
