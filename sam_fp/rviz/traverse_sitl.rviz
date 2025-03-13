@@ -67,7 +67,7 @@ Visualization Manager:
       Value: true
     - Class: rviz/Image
       Enabled: true
-      Image Topic: /iris_depth_camera/camera/rgb/image_raw
+      Image Topic: /camera/color/image_raw
       Max Value: 1
       Median window: 5
       Min Value: 0
@@ -162,7 +162,7 @@ Visualization Manager:
   Global Options:
     Background Color: 48; 48; 48
     Default Light: true
-    Fixed Frame: camera_link
+    Fixed Frame: base_link
     Frame Rate: 30
   Name: root
   Tools:
