@@ -48,6 +48,75 @@ roslaunch sam_fp rosbag.launch bag_file:=1.bag image_topic:=/oak/rgb/image_raw p
 
 ```
 
+## SITL: PX4 + Gazebo + MAVROS
+
+The simulation environment uses PX4 SITL with Gazebo and MAVROS, featuring an Iris quadcopter equipped with a RealSense D435i depth camera.
+
+### Prerequisites
+
+1. Install PX4 firmware and build SITL:
+```bash
+# Clone PX4 firmware
+git clone https://github.com/PX4/PX4-Autopilot.git
+cd PX4-Autopilot
+
+# Install dependencies
+bash Tools/setup/ubuntu.sh
+
+# Build SITL
+make px4_sitl gazebo
+```
+
+2. Install ROS dependencies:
+```bash
+sudo apt install ros-${ROS_DISTRO}-gazebo-ros-pkgs ros-${ROS_DISTRO}-mavros ros-${ROS_DISTRO}-mavros-extras
+```
+
+3. Install realsense_ros_gazebo
+```bash
+git clone https://gitee.com/nie_xun/realsense_ros_gazebo
+ln -s realsense_ros_gazebo ~/catkin_ws/src
+```
+
+### Running the Simulation
+
+1. Build the ROS workspace:
+```bash
+cd catkin_ws
+catkin_make
+# Install iris model with depth camera refer to https://github.com/siyuanwu99/iris_D435i_gazebo/blob/main/install.sh
+# And do some modifications: turn on pointCloud in D435i's sdf, edit child_link in iris_D435i's sdf.
+```
+
+2. Launch the simulation:
+```bash
+# Replace /path/to/PX4-Autopilot with your PX4 firmware directory
+bash tools/traverse_sitl.sh /path/to/PX4-Autopilot
+```
+
+This will launch:
+- PX4 SITL simulation with Gazebo
+- MAVROS for ROS communication with PX4
+- Custom world with doors for navigation
+- Iris drone equipped with D435i depth camera
+- SAM detection nodes for door recognition
+- Autonomous navigation node
+
+### Launch File Configuration
+
+The simulation can be configured through launch file arguments:
+- `search_text`: Text prompt for SAM detection (default: "[a door]")
+- `vehicle_model`: Vehicle model to use (default: iris_D435i)
+- `world`: Custom Gazebo world file (default: door.world)
+- `gui`: Enable/disable Gazebo GUI
+- `x, y, z`: Initial position
+- `R, P, Y`: Initial orientation
+
+Example with custom parameters:
+```bash
+./tools/traverse_sitl.sh /path/to/PX4-Autopilot "vehicle_model:=iris_D435i gui:=true x:=2 y:=4"
+```
+
 ## Jetson Platform Deployment
 
 Using Docker as base development environment, install modifed [jetson-containers](https://github.com/Jadeiin/jetson-containers) and prepare basic environment at first.
