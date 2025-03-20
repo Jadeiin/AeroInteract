@@ -18,22 +18,19 @@ class DoorTraverseNode:
     """ROS node for autonomous door traversal using visual detection and MAVROS control.
 
     State Machine Flow:
-    INIT -> TAKEOFF -> POSITIONING -> HOVERING -> TRAVERSE
+    INIT -> TAKEOFF -> TRAVERSE -> LANDING
 
     1. INIT: Enable offboard mode and arm
     2. TAKEOFF: Rise to specified height
-    3. POSITIONING: Move to hover position in front of door
-    4. HOVERING: Stabilize and prepare traverse
-    5. TRAVERSE: Execute pre-calculated door traversal
+    3. TRAVERSE: Execute direct door traversal
+    4. LANDING: Controlled descent to ground
     """
 
     # Configuration constants
     CONTROL_RATE = 20  # Hz
-    HOVER_DURATION = 5.0  # seconds
     TRAVERSE_SPEED = 2.0  # m/s
     POSITIONING_THRESHOLD = 0.1  # meters
     TAKEOFF_HEIGHT = 1.0  # meters
-    DOOR_HOVER_DISTANCE = 1.0  # meters
     DOOR_END_DISTANCE = 0.2  # meters
     DOOR_DETECTION_TIMEOUT = 5.0  # seconds
 
@@ -254,51 +251,10 @@ class DoorTraverseNode:
 
         # Check if we've reached takeoff height
         if abs(current_pos.z - self.TAKEOFF_HEIGHT) < self.POSITIONING_THRESHOLD:
-            self.execution_state = "POSITIONING"
-            rospy.loginfo("Takeoff complete, starting door approach")
+            self.execution_state = "TRAVERSE"
+            rospy.loginfo("Takeoff complete, starting door traverse")
 
         self._publish_setpoint(takeoff_pos)
-
-    def _handle_positioning_state(self):
-        """Move to hover position in front of door."""
-        if not self.door_center or not self.door_normal:
-            # Hold position while waiting for door detection
-            self._publish_setpoint(self.current_pose.pose.position)
-            rospy.loginfo_throttle(5.0, "Waiting for door detection")
-            return
-
-        # Calculate hover position
-        hover_pos = self._calculate_door_position(-self.DOOR_HOVER_DISTANCE)
-
-        # Check if we've reached hover position
-        if (
-            self._calculate_distance(self.current_pose.pose.position, hover_pos)
-            < self.POSITIONING_THRESHOLD
-        ):
-            self.hover_start_time = time.time()
-            self.execution_state = "HOVERING"
-            rospy.loginfo("Reached hover position, stabilizing")
-
-        self._publish_setpoint(hover_pos)
-
-    def _handle_hovering_state(self):
-        """Stabilize at hover position and prepare for traverse."""
-        if not self.door_center or not self.door_normal:
-            self.execution_state = "POSITIONING"
-            rospy.logwarn("Lost door detection, returning to positioning")
-            return
-
-        # Continue hovering at current position
-        hover_pos = self._calculate_door_position(-self.DOOR_HOVER_DISTANCE)
-        self._publish_setpoint(hover_pos)
-
-        # After hover duration, prepare and start traverse
-        if time.time() - self.hover_start_time >= self.HOVER_DURATION:
-            start_pos = self._calculate_door_position(-self.DOOR_HOVER_DISTANCE)
-            end_pos = self._calculate_door_position(self.DOOR_END_DISTANCE)
-            self.traverse_waypoints = (start_pos, end_pos, self.door_center.z)
-            self.execution_state = "TRAVERSE"
-            rospy.loginfo("Starting door traverse")
 
     def _set_speed(self, scale, speed_type=1):
         """Send MAV_CMD_DO_CHANGE_SPEED command.
@@ -333,13 +289,16 @@ class DoorTraverseNode:
             rospy.logerr(f"Speed change failed: {e}")
 
     def _handle_traverse_state(self):
-        """Execute door traversal using pre-calculated waypoints."""
-        if not self.traverse_waypoints:
-            self.execution_state = "POSITIONING"
-            rospy.logwarn("Traverse waypoints not found, restarting")
+        """Execute direct door traversal."""
+        if not self.door_center or not self.door_normal:
+            # Hold position while waiting for door detection
+            self._publish_setpoint(self.current_pose.pose.position)
+            rospy.loginfo_throttle(5.0, "Waiting for door detection")
             return
 
-        start_pos, end_pos, traverse_height = self.traverse_waypoints
+        # Calculate end position beyond the door
+        end_pos = self._calculate_door_position(self.DOOR_END_DISTANCE)
+        traverse_height = self.door_center.z
         current_pos = self.current_pose.pose.position
 
         # Calculate distance to end point and normalize to get speed scale
@@ -369,9 +328,30 @@ class DoorTraverseNode:
         if distance_to_end < step_size:
             target = end_pos
             rospy.loginfo("Traverse complete")
-            # Could transition to a new state here
+            self.execution_state = "LANDING"
 
         self._publish_setpoint(target)
+
+    def _handle_landing_state(self):
+        """Execute controlled landing sequence."""
+        current_pos = self.current_pose.pose.position
+        landing_pos = Point()
+        landing_pos.x = current_pos.x
+        landing_pos.y = current_pos.y
+        landing_pos.z = 0.0  # Ground level
+
+        # Set slower speed for landing
+        self._set_speed(0.2)
+
+        # Check if we've reached ground level
+        if current_pos.z < 0.1:  # 10cm threshold
+            if self.current_state.armed:
+                # Disarm the vehicle
+                self.arming_client(False)
+                rospy.loginfo("Landing complete, vehicle disarmed")
+            return
+
+        self._publish_setpoint(landing_pos)
 
     def run(self):
         """Main execution loop."""
@@ -396,18 +376,16 @@ class DoorTraverseNode:
                     self._handle_init_state()
                 elif self.execution_state == "TAKEOFF":
                     self._handle_takeoff_state()
-                elif self.execution_state == "POSITIONING":
-                    self._handle_positioning_state()
-                elif self.execution_state == "HOVERING":
-                    self._handle_hovering_state()
                 elif self.execution_state == "TRAVERSE":
                     self._handle_traverse_state()
+                elif self.execution_state == "LANDING":
+                    self._handle_landing_state()
 
             except Exception as e:
                 rospy.logerr(f"Error in main loop: {e}")
-                # Reset to safe state if not in initialization or takeoff
-                if self.execution_state not in ["INIT", "TAKEOFF"]:
-                    self.execution_state = "POSITIONING"
+                # Reset to safe state
+                if self.execution_state not in ["INIT", "TAKEOFF", "LANDING"]:
+                    self.execution_state = "LANDING"
 
             self.rate.sleep()
 
