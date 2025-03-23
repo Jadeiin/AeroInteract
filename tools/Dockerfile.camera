@@ -19,7 +19,7 @@ ARG SAMROS_REPO="https://git.qunn.eu/poesty/sam_ros" \
 
 # Root workspace
 RUN cd ros_catkin_ws && \
-    rosinstall_generator depthai-ros pcl_conversions realsense2_camera rgbd_launch --rosdistro ${ROS_DISTRO} --deps --tar --exclude RPP librealsense2 > ${ROS_DISTRO}-sam_ros.rosinstall && \
+    rosinstall_generator camera_info_manager pcl_conversions realsense2_camera rgbd_launch --rosdistro ${ROS_DISTRO} --deps --tar --exclude RPP librealsense2 > ${ROS_DISTRO}-sam_ros.rosinstall && \
     vcs import --retry 100 --input ${ROS_DISTRO}-sam_ros.rosinstall ./src && \
     apt-get update && \
     rosdep install -y \
