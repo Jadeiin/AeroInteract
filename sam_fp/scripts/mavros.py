@@ -28,7 +28,7 @@ class DoorTraverseNode:
 
     # Configuration constants
     CONTROL_RATE = 20  # Hz
-    TRAVERSE_SPEED = 2.0  # m/s
+    TRAVERSE_SPEED = 20  # m/s?
     POSITIONING_THRESHOLD = 0.1  # meters
     TAKEOFF_HEIGHT = 1.0  # meters
     DOOR_END_DISTANCE = 0.2  # meters
