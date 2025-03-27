@@ -256,38 +256,6 @@ class DoorTraverseNode:
 
         self._publish_setpoint(takeoff_pos)
 
-    def _set_speed(self, scale, speed_type=1):
-        """Send MAV_CMD_DO_CHANGE_SPEED command.
-
-        Args:
-            scale (float): Speed scale factor between 0.0 and 1.0
-            speed_type (int, optional): 0=airspeed, 1=groundspeed, 2=climb speed, 3=descent speed.
-                                      Defaults to groundspeed.
-        """
-        # MAV_CMD_DO_CHANGE_SPEED parameters:
-        # param1: speed type
-        # param2: speed in m/s
-        # param3: -1 (no change to throttle)
-        # param4: absolute or relative [0=absolute, 1=relative]
-        try:
-            # Clamp scale between 0 and 1
-            scale = max(0.0, min(1.0, scale))
-            speed = self.TRAVERSE_SPEED * scale
-
-            self.cmd_client(
-                command=178,  # MAV_CMD_DO_CHANGE_SPEED
-                param1=float(speed_type),
-                param2=float(speed),
-                param3=-1.0,
-                param4=0.0,
-                param5=0.0,
-                param6=0.0,
-                param7=0.0,
-            )
-            rospy.loginfo(f"Speed scale set to {scale:.2f} ({speed:.2f} m/s)")
-        except rospy.ServiceException as e:
-            rospy.logerr(f"Speed change failed: {e}")
-
     def _handle_traverse_state(self):
         """Execute direct door traversal."""
         if not self.door_center or not self.door_normal:
@@ -305,20 +273,16 @@ class DoorTraverseNode:
         distance_to_end = self._calculate_distance(current_pos, end_pos)
 
         # Adjust speed scale based on distance to end point
-        if distance_to_end > 2.0:
-            # Full speed when far from door
-            self._set_speed(1.0)
-        elif distance_to_end > 1.0:
-            # 50% speed when approaching door
-            self._set_speed(0.5)
+        factor = 1.0
+        if distance_to_end > 1.0:
+            factor = 0.5
         else:
-            # 25% speed for final approach
-            self._set_speed(0.25)
+            factor = 0.25
 
         # Create next setpoint
         target = Point()
         direction = self._calculate_normal_vector(current_pos, end_pos)
-        step_size = self.TRAVERSE_SPEED / self.CONTROL_RATE
+        step_size = factor * self.TRAVERSE_SPEED / self.CONTROL_RATE
 
         target.x = current_pos.x + direction.x * step_size
         target.y = current_pos.y + direction.y * step_size
@@ -339,9 +303,6 @@ class DoorTraverseNode:
         landing_pos.x = current_pos.x
         landing_pos.y = current_pos.y
         landing_pos.z = 0.0  # Ground level
-
-        # Set slower speed for landing
-        self._set_speed(0.2)
 
         # Check if we've reached ground level
         if current_pos.z < 0.1:  # 10cm threshold
