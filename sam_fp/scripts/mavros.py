@@ -10,7 +10,7 @@ from geometry_msgs.msg import (
     PointStamped,
 )
 from visualization_msgs.msg import MarkerArray
-from mavros_msgs.msg import State, PositionTarget
+from mavros_msgs.msg import State
 from mavros_msgs.srv import CommandBool, SetMode, CommandLong
 
 
@@ -70,8 +70,8 @@ class DoorTraverseNode:
         rospy.Subscriber("objects_marker", MarkerArray, self._marker_callback)
 
         # Publisher
-        self.local_raw_pub = rospy.Publisher(
-            "mavros/setpoint_raw/local", PositionTarget, queue_size=10
+        self.local_pos_pub = rospy.Publisher(
+            "mavros/setpoint_position/local", PoseStamped, queue_size=10
         )
 
         # Service clients
@@ -166,47 +166,19 @@ class DoorTraverseNode:
             return False
         return True
 
-    def _publish_setpoint(self, position, velocity=None, orientation=None, stamp=None):
-        """Publish a setpoint using position target."""
-        msg = PositionTarget()
-        msg.header.stamp = stamp if stamp else rospy.Time.now()
-        msg.header.frame_id = "map"
-        
-        # Set coordinate frame and type mask
-        msg.coordinate_frame = PositionTarget.FRAME_LOCAL_NED
-        msg.type_mask = (PositionTarget.IGNORE_VX + 
-                        PositionTarget.IGNORE_VY + 
-                        PositionTarget.IGNORE_VZ +
-                        PositionTarget.IGNORE_AFX + 
-                        PositionTarget.IGNORE_AFY + 
-                        PositionTarget.IGNORE_AFZ +
-                        PositionTarget.IGNORE_YAW_RATE)
-
-        # Set position
-        msg.position.x = position.x
-        msg.position.y = position.y
-        msg.position.z = position.z
-
-        # Set velocity if provided
-        if velocity:
-            msg.type_mask -= (PositionTarget.IGNORE_VX + 
-                            PositionTarget.IGNORE_VY + 
-                            PositionTarget.IGNORE_VZ)
-            msg.velocity.x = velocity.x
-            msg.velocity.y = velocity.y
-            msg.velocity.z = velocity.z
-
-        # Set yaw from orientation if provided
-        if orientation:
-            _, _, yaw = tf.transformations.euler_from_quaternion([
-                orientation.x,
-                orientation.y,
-                orientation.z,
-                orientation.w
-            ])
-            msg.yaw = yaw
-
-        self.local_raw_pub.publish(msg)
+    def _publish_setpoint(self, position, orientation=None, stamp=None):
+        """Publish a setpoint position."""
+        # TODO: use setpoint_raw instead of setpoint_position
+        # This will allow for more control over velocity, acceleration and yaw
+        # original thought was to use setpoint_position and setpoint_velocity
+        pose = PoseStamped()
+        pose.header.stamp = stamp if stamp else rospy.Time.now()
+        pose.header.frame_id = "map"
+        pose.pose.position = position
+        pose.pose.orientation = (
+            orientation if orientation else self.current_pose.pose.orientation
+        )
+        self.local_pos_pub.publish(pose)
 
     #
     # Navigation Helper Methods
@@ -277,17 +249,44 @@ class DoorTraverseNode:
         takeoff_pos.y = current_pos.y
         takeoff_pos.z = self.TAKEOFF_HEIGHT
 
-        # Add smooth vertical speed control for takeoff
-        velocity = Point()
-        velocity.z = 0.5  # 0.5 m/s ascent rate
-
         # Check if we've reached takeoff height
         if abs(current_pos.z - self.TAKEOFF_HEIGHT) < self.POSITIONING_THRESHOLD:
             self.execution_state = "TRAVERSE"
             rospy.loginfo("Takeoff complete, starting door traverse")
-            velocity.z = 0.0  # Stop vertical movement
 
-        self._publish_setpoint(takeoff_pos, velocity)
+        self._publish_setpoint(takeoff_pos)
+
+    def _set_speed(self, scale, speed_type=1):
+        """Send MAV_CMD_DO_CHANGE_SPEED command.
+
+        Args:
+            scale (float): Speed scale factor between 0.0 and 1.0
+            speed_type (int, optional): 0=airspeed, 1=groundspeed, 2=climb speed, 3=descent speed.
+                                      Defaults to groundspeed.
+        """
+        # MAV_CMD_DO_CHANGE_SPEED parameters:
+        # param1: speed type
+        # param2: speed in m/s
+        # param3: -1 (no change to throttle)
+        # param4: absolute or relative [0=absolute, 1=relative]
+        try:
+            # Clamp scale between 0 and 1
+            scale = max(0.0, min(1.0, scale))
+            speed = self.TRAVERSE_SPEED * scale
+
+            self.cmd_client(
+                command=178,  # MAV_CMD_DO_CHANGE_SPEED
+                param1=float(speed_type),
+                param2=float(speed),
+                param3=-1.0,
+                param4=0.0,
+                param5=0.0,
+                param6=0.0,
+                param7=0.0,
+            )
+            rospy.loginfo(f"Speed scale set to {scale:.2f} ({speed:.2f} m/s)")
+        except rospy.ServiceException as e:
+            rospy.logerr(f"Speed change failed: {e}")
 
     def _handle_traverse_state(self):
         """Execute direct door traversal."""
@@ -305,43 +304,33 @@ class DoorTraverseNode:
         # Calculate distance to end point and normalize to get speed scale
         distance_to_end = self._calculate_distance(current_pos, end_pos)
 
-        # Calculate target position and velocity
-        direction = self._calculate_normal_vector(current_pos, end_pos)
-        target = Point()
-        velocity = Point()
-
-        # Adjust velocity based on distance to end point
+        # Adjust speed scale based on distance to end point
         if distance_to_end > 2.0:
             # Full speed when far from door
-            speed = self.TRAVERSE_SPEED
+            self._set_speed(1.0)
         elif distance_to_end > 1.0:
             # 50% speed when approaching door
-            speed = self.TRAVERSE_SPEED * 0.5
+            self._set_speed(0.5)
         else:
             # 25% speed for final approach
-            speed = self.TRAVERSE_SPEED * 0.25
+            self._set_speed(0.25)
 
-        # Set velocity vector
-        velocity.x = direction.x * speed
-        velocity.y = direction.y * speed
-        velocity.z = 0.0  # Maintain constant height
+        # Create next setpoint
+        target = Point()
+        direction = self._calculate_normal_vector(current_pos, end_pos)
+        step_size = self.TRAVERSE_SPEED / self.CONTROL_RATE
 
-        # Set target position
-        target.x = end_pos.x
-        target.y = end_pos.y
+        target.x = current_pos.x + direction.x * step_size
+        target.y = current_pos.y + direction.y * step_size
         target.z = traverse_height
 
         # Check if we've reached the end
-        if distance_to_end < self.POSITIONING_THRESHOLD:
-            # Stop movement and prepare for landing
-            velocity = Point()
+        if distance_to_end < step_size:
             target = end_pos
-            # Publish final path segment
-            self._publish_path_segment(current_pos, end_pos)
             rospy.loginfo("Traverse complete")
             self.execution_state = "LANDING"
 
-        self._publish_setpoint(target, velocity)
+        self._publish_setpoint(target)
 
     def _handle_landing_state(self):
         """Execute controlled landing sequence."""
@@ -351,9 +340,8 @@ class DoorTraverseNode:
         landing_pos.y = current_pos.y
         landing_pos.z = 0.0  # Ground level
 
-        # Set descending velocity
-        velocity = Point()
-        velocity.z = -0.5  # 0.5 m/s descent rate
+        # Set slower speed for landing
+        self._set_speed(0.2)
 
         # Check if we've reached ground level
         if current_pos.z < 0.1:  # 10cm threshold
@@ -363,7 +351,7 @@ class DoorTraverseNode:
                 rospy.loginfo("Landing complete, vehicle disarmed")
             return
 
-        self._publish_setpoint(landing_pos, velocity)
+        self._publish_setpoint(landing_pos)
 
     def run(self):
         """Main execution loop."""
