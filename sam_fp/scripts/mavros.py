@@ -215,10 +215,26 @@ class DoorTraverseNode:
         )
 
     def _calculate_door_position(self, distance):
-        """Calculate position relative to door center."""
+        """Calculate position relative to door center using primary axis."""
+        current_pos = self.current_pose.pose.position
+
+        # Calculate movement vector from quadrotor to door center
+        diff_x = self.door_center.x - current_pos.x
+        diff_y = self.door_center.y - current_pos.y
+
+        # Determine primary axis based on largest positional difference
+        abs_x = abs(diff_x)
+        abs_y = abs(diff_y)
+
         point = Point()
-        point.x = self.door_center.x + self.door_normal.x * distance
-        point.y = self.door_center.y + self.door_normal.y * distance
+        if abs_x > abs_y:
+            # X is primary axis - maintain y coordinate
+            point.x = self.door_center.x + self.door_normal.x * distance
+            point.y = self.door_center.y
+        else:
+            # Y is primary axis - maintain x coordinate
+            point.x = self.door_center.x
+            point.y = self.door_center.y + self.door_normal.y * distance
         point.z = self.door_center.z
         return point
 
