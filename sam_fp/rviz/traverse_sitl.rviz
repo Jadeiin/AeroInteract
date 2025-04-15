@@ -145,7 +145,7 @@ Visualization Manager:
     - Class: rviz/Marker
       Enabled: true
       Marker Topic: /wall_marker
-      Name: Marker
+      Name: wall_marker
       Namespaces:
         wall_arrow: true
       Queue Size: 100
@@ -153,10 +153,30 @@ Visualization Manager:
     - Class: rviz/Marker
       Enabled: true
       Marker Topic: /object_angle
-      Name: Marker
+      Name: object_angle_marker
       Namespaces:
         object_angle: true
       Queue Size: 100
+      Value: true
+    - Class: rviz/Path
+      Enabled: true
+      Name: Target Path
+      Topic: /traverse_trajectory/target
+      Color: 0; 255; 0
+      Alpha: 1.0
+      Buffer Length: 1
+      Line Style: Lines
+      Line Width: 0.03
+      Value: true
+    - Class: rviz/Path
+      Enabled: true
+      Name: Actual Path
+      Topic: /traverse_trajectory/actual
+      Color: 0; 0; 255
+      Alpha: 1.0
+      Buffer Length: 1
+      Line Style: Lines
+      Line Width: 0.03
       Value: true
   Enabled: true
   Global Options:

@@ -10,6 +10,7 @@ from geometry_msgs.msg import (
     PointStamped,
 )
 from visualization_msgs.msg import MarkerArray
+from nav_msgs.msg import Path
 from mavros_msgs.msg import State
 from mavros_msgs.srv import CommandBool, SetMode, CommandLong
 
@@ -41,6 +42,7 @@ class DoorTraverseNode:
         self._setup_ros_interface()
         self._setup_tf()
         self.rate = rospy.Rate(self.CONTROL_RATE)
+        self.enable_metrics = rospy.get_param("/enable_metrics", False)
 
     #
     # Setup Methods
@@ -69,10 +71,21 @@ class DoorTraverseNode:
         rospy.Subscriber("mavros/local_position/pose", PoseStamped, self._pose_callback)
         rospy.Subscriber("objects_marker", MarkerArray, self._marker_callback)
 
-        # Publisher
+        # Publishers
         self.local_pos_pub = rospy.Publisher(
             "mavros/setpoint_position/local", PoseStamped, queue_size=10
         )
+        # Publishers for trajectory visualization
+        self.target_path_pub = rospy.Publisher(
+            "traverse_trajectory/target", Path, queue_size=10
+        )
+        self.actual_path_pub = rospy.Publisher(
+            "traverse_trajectory/actual", Path, queue_size=10
+        )
+        self.target_path = Path()
+        self.actual_path = Path()
+        self.target_path.header.frame_id = "map"
+        self.actual_path.header.frame_id = "map"
 
         # Service clients
         rospy.wait_for_service("mavros/cmd/arming")
@@ -238,6 +251,36 @@ class DoorTraverseNode:
         point.z = self.door_center.z
         return point
 
+    def _update_trajectories(self, current_pos, target_pos):
+        """Update and publish target and actual trajectory paths."""
+        now = rospy.Time.now()
+
+        # Create PoseStamped for current position
+        current_pose = PoseStamped()
+        current_pose.header.frame_id = "map"
+        current_pose.header.stamp = now
+        current_pose.pose.position = current_pos
+        current_pose.pose.orientation = self.current_pose.pose.orientation
+
+        # Create PoseStamped for target position
+        target_pose = PoseStamped()
+        target_pose.header.frame_id = "map"
+        target_pose.header.stamp = now
+        target_pose.pose.position = target_pos
+        target_pose.pose.orientation = self.current_pose.pose.orientation
+
+        # Update target path (green)
+        self.target_path.header.stamp = now
+        self.target_path.poses.append(target_pose)
+
+        # Update actual path (blue)
+        self.actual_path.header.stamp = now
+        self.actual_path.poses.append(current_pose)
+
+        # Publish updated paths
+        self.target_path_pub.publish(self.target_path)
+        self.actual_path_pub.publish(self.actual_path)
+
     #
     # State Handler Methods
     #
@@ -304,9 +347,14 @@ class DoorTraverseNode:
         target.y = current_pos.y + direction.y * step_size
         target.z = traverse_height
 
+        # Update and publish trajectories
+        self._update_trajectories(current_pos, target)
+
         # Check if we've reached the end
         if distance_to_end < step_size:
             target = end_pos
+            # Update trajectories with final position
+            self._update_trajectories(current_pos, end_pos)
             rospy.loginfo("Traverse complete")
             self.execution_state = "LANDING"
 
