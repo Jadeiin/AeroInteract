@@ -290,9 +290,9 @@ class DoorTraverseNode:
 
         # Adjust speed scale based on distance to end point
         factor = 1.0
-        if distance_to_end > 1.0:
+        if distance_to_end > 1.0 and distance_to_end < 2.0:
             factor = 0.5
-        else:
+        elif distance_to_end < 1.0:
             factor = 0.25
 
         # Create next setpoint
