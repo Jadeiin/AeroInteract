@@ -59,6 +59,10 @@ class DoorTraverseNode:
         self.door_normal = None
         self.last_door_detection = None
 
+        # Fixed door data (set after takeoff)
+        self.fixed_door_center = None
+        self.fixed_door_normal = None
+
         # Navigation state
         self.execution_state = "INIT"
         self.hover_start_time = None
@@ -227,13 +231,17 @@ class DoorTraverseNode:
             + (point1.z - point2.z) ** 2
         )
 
-    def _calculate_door_position(self, distance):
+    def _calculate_door_position(self, distance, use_fixed_data=True):
         """Calculate position relative to door center using primary axis."""
         current_pos = self.current_pose.pose.position
 
+        # Use fixed door data during traverse
+        door_center = self.fixed_door_center if use_fixed_data else self.door_center
+        door_normal = self.fixed_door_normal if use_fixed_data else self.door_normal
+
         # Calculate movement vector from quadrotor to door center
-        diff_x = self.door_center.x - current_pos.x
-        diff_y = self.door_center.y - current_pos.y
+        diff_x = door_center.x - current_pos.x
+        diff_y = door_center.y - current_pos.y
 
         # Determine primary axis based on largest positional difference
         abs_x = abs(diff_x)
@@ -242,13 +250,13 @@ class DoorTraverseNode:
         point = Point()
         if abs_x > abs_y:
             # X is primary axis - maintain y coordinate
-            point.x = self.door_center.x + self.door_normal.x * distance
-            point.y = self.door_center.y
+            point.x = door_center.x + door_normal.x * distance
+            point.y = door_center.y
         else:
             # Y is primary axis - maintain x coordinate
-            point.x = self.door_center.x
-            point.y = self.door_center.y + self.door_normal.y * distance
-        point.z = self.door_center.z
+            point.x = door_center.x
+            point.y = door_center.y + door_normal.y * distance
+        point.z = door_center.z
         return point
 
     def _update_trajectories(self, current_pos, target_pos):
@@ -320,12 +328,18 @@ class DoorTraverseNode:
         if not self.door_center or not self.door_normal:
             # Hold position while waiting for door detection
             self._publish_setpoint(self.current_pose.pose.position)
-            rospy.loginfo_throttle(5.0, "Waiting for door detection")
+            rospy.loginfo_throttle(2.0, "Waiting for door detection")
             return
+
+        # First time in traverse with valid door data - store fixed values
+        if not self.fixed_door_center:
+            self.fixed_door_center = self.door_center
+            self.fixed_door_normal = self.door_normal
+            rospy.loginfo("Door data fixed for traverse")
 
         # Calculate end position beyond the door
         end_pos = self._calculate_door_position(self.DOOR_END_DISTANCE)
-        traverse_height = self.door_center.z
+        traverse_height = self.fixed_door_center.z
         current_pos = self.current_pose.pose.position
 
         # Calculate distance to end point and normalize to get speed scale
