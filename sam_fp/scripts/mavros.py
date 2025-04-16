@@ -396,7 +396,7 @@ class DoorTraverseNode:
             if self.current_state.armed:
                 # Disarm the vehicle
                 self.arming_client(False)
-                rospy.loginfo("Landing complete, vehicle disarmed")
+                rospy.loginfo_throttle(5.0, "Landing complete, vehicle disarmed")
             return
 
         self._publish_setpoint(landing_pos)
