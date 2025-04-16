@@ -336,6 +336,8 @@ class DoorTraverseNode:
             self.fixed_door_center = self.door_center
             self.fixed_door_normal = self.door_normal
             rospy.loginfo("Door data fixed for traverse")
+            rospy.loginfo(f"Door center: {self.fixed_door_center}")
+            rospy.loginfo(f"Door normal: {self.fixed_door_normal}")
 
         # Calculate end position beyond the door
         end_pos = self._calculate_door_position(self.DOOR_END_DISTANCE)
