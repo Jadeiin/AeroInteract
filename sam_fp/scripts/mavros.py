@@ -9,7 +9,7 @@ from geometry_msgs.msg import (
     TransformStamped,
     PointStamped,
 )
-from visualization_msgs.msg import MarkerArray
+from visualization_msgs.msg import MarkerArray, Marker
 from nav_msgs.msg import Path
 from mavros_msgs.msg import State
 from mavros_msgs.srv import CommandBool, SetMode, CommandLong
@@ -32,7 +32,7 @@ class DoorTraverseNode:
     TRAVERSE_SPEED = 20  # m/s?
     POSITIONING_THRESHOLD = 0.1  # meters
     TAKEOFF_HEIGHT = 1.0  # meters
-    DOOR_END_DISTANCE = 1.0  # meters
+    DOOR_END_DISTANCE = 2.0  # meters
     DOOR_DETECTION_TIMEOUT = 5.0  # seconds
 
     def __init__(self):
@@ -79,12 +79,15 @@ class DoorTraverseNode:
         self.local_pos_pub = rospy.Publisher(
             "mavros/setpoint_position/local", PoseStamped, queue_size=10
         )
-        # Publishers for trajectory visualization
+        # Publishers for visualization
         self.target_path_pub = rospy.Publisher(
             "traverse_trajectory/target", Path, queue_size=10
         )
         self.actual_path_pub = rospy.Publisher(
             "traverse_trajectory/actual", Path, queue_size=10
+        )
+        self.door_markers_pub = rospy.Publisher(
+            "door_visualization", MarkerArray, queue_size=10
         )
         self.target_path = Path()
         self.actual_path = Path()
@@ -336,6 +339,53 @@ class DoorTraverseNode:
             self.fixed_door_center = self.door_center
             self.fixed_door_normal = self.door_normal
             rospy.loginfo("Door data fixed for traverse")
+
+            # Create markers for door center and end position
+            markers = MarkerArray()
+
+            # Door center marker (red sphere)
+            center_marker = Marker()
+            center_marker.header.frame_id = "map"
+            center_marker.header.stamp = rospy.Time.now()
+            center_marker.ns = "door_points"
+            center_marker.id = 0
+            center_marker.type = Marker.SPHERE
+            center_marker.action = Marker.ADD
+            center_marker.pose.position = self.fixed_door_center
+            center_marker.pose.orientation.w = 1.0
+            center_marker.scale.x = 0.1
+            center_marker.scale.y = 0.1
+            center_marker.scale.z = 0.1
+            center_marker.color.r = 1.0
+            center_marker.color.g = 0.0
+            center_marker.color.b = 0.0
+            center_marker.color.a = 1.0
+            center_marker.lifetime = rospy.Duration()
+            markers.markers.append(center_marker)
+
+            # End position marker (blue sphere)
+            end_pos = self._calculate_door_position(self.DOOR_END_DISTANCE)
+            end_marker = Marker()
+            end_marker.header.frame_id = "map"
+            end_marker.header.stamp = rospy.Time.now()
+            end_marker.ns = "door_points"
+            end_marker.id = 1
+            end_marker.type = Marker.SPHERE
+            end_marker.action = Marker.ADD
+            end_marker.pose.position = end_pos
+            end_marker.pose.orientation.w = 1.0
+            end_marker.scale.x = 0.1
+            end_marker.scale.y = 0.1
+            end_marker.scale.z = 0.1
+            end_marker.color.r = 0.0
+            end_marker.color.g = 0.0
+            end_marker.color.b = 1.0
+            end_marker.color.a = 1.0
+            end_marker.lifetime = rospy.Duration()
+            markers.markers.append(end_marker)
+
+            # Publish marker array
+            self.door_markers_pub.publish(markers)
             rospy.loginfo(f"Door center: {self.fixed_door_center}")
             rospy.loginfo(f"Door normal: {self.fixed_door_normal}")
 
