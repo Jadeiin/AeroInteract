@@ -24,7 +24,7 @@
     <arg name="z" default="0" doc="Initial Z position"/>
     <arg name="R" default="0" doc="Initial roll"/>
     <arg name="P" default="0" doc="Initial pitch"/>
-    <arg name="Y" default="-1.5708" doc="Initial yaw"/>
+    <arg name="Y" default="-1.57079632679" doc="Initial yaw"/>
 
     <!-- Visualization -->
     <arg name="start_rviz" default="true" doc="Start RViz"/>
@@ -70,7 +70,7 @@
     <node pkg="tf" type="static_transform_publisher" name="camera_transform"
           args="0.12 0 0 0 0 0 base_link $(arg camera_frame) 100"/>
     <node pkg="tf" type="static_transform_publisher" name="depth_frame_transform"
-          args="0 0 0 -1.57 0 -1.57 $(arg camera_frame) $(arg depth_frame) 100"/>
+          args="0 0 0 -1.57079632679 0 -1.57079632679 $(arg camera_frame) $(arg depth_frame) 100"/>
     <node pkg="tf" type="static_transform_publisher" name="map_transform"
           args="0 0 0 0 0 0 map odom 100"/>
 
