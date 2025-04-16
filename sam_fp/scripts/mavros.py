@@ -328,7 +328,7 @@ class DoorTraverseNode:
         if not self.door_center or not self.door_normal:
             # Hold position while waiting for door detection
             self._publish_setpoint(self.current_pose.pose.position)
-            rospy.loginfo_throttle(2.0, "Waiting for door detection")
+            rospy.loginfo_throttle(5.0, "Waiting for door detection")
             return
 
         # First time in traverse with valid door data - store fixed values
@@ -361,6 +361,15 @@ class DoorTraverseNode:
         target.y = current_pos.y + direction.y * step_size
         target.z = traverse_height
 
+        # Calculate desired yaw orientation based on movement direction
+        yaw = math.atan2(direction.y, direction.x)
+        quaternion = tf.transformations.quaternion_from_euler(0, 0, yaw)
+        orientation = self.current_pose.pose.orientation
+        orientation.x = quaternion[0]
+        orientation.y = quaternion[1]
+        orientation.z = quaternion[2]
+        orientation.w = quaternion[3]
+
         # Update and publish trajectories
         self._update_trajectories(current_pos, target)
 
@@ -372,7 +381,7 @@ class DoorTraverseNode:
             rospy.loginfo("Traverse complete")
             self.execution_state = "LANDING"
 
-        self._publish_setpoint(target)
+        self._publish_setpoint(target, orientation)
 
     def _handle_landing_state(self):
         """Execute controlled landing sequence."""
