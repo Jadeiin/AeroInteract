@@ -32,7 +32,7 @@ class DoorTraverseNode:
     TRAVERSE_SPEED = 20  # m/s?
     POSITIONING_THRESHOLD = 0.1  # meters
     TAKEOFF_HEIGHT = 1.0  # meters
-    DOOR_END_DISTANCE = 0.2  # meters
+    DOOR_END_DISTANCE = 1.0  # meters
     DOOR_DETECTION_TIMEOUT = 5.0  # seconds
 
     def __init__(self):
