@@ -65,7 +65,7 @@ class NanoSAMRos:
 
         num_detections = len(detections.labels)
         if num_detections == 0:
-            rospy.loginfo("No detections found!")
+            rospy.logwarn_throttle(1.0, "No detections found!")
             return None
 
         # TODO: use multiple bboxes as prompts
