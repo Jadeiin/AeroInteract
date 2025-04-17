@@ -240,6 +240,7 @@ class DoorTraverseNode:
 
         # Use fixed door data during traverse
         door_center = self.fixed_door_center if use_fixed_data else self.door_center
+        door_normal = self.fixed_door_normal if use_fixed_data else self.door_normal
 
         # Calculate movement vector from quadrotor to door center
         diff_x = door_center.x - current_pos.x
@@ -252,12 +253,12 @@ class DoorTraverseNode:
         point = Point()
         if abs_x > abs_y:
             # X is primary axis - maintain y coordinate
-            point.x = door_center.x + distance
+            point.x = door_center.x + door_normal.x / abs(door_normal.x) * distance
             point.y = door_center.y
         else:
             # Y is primary axis - maintain x coordinate
             point.x = door_center.x
-            point.y = door_center.y + distance
+            point.y = door_center.y + door_normal.y / abs(door_normal.y) * distance
         point.z = door_center.z
         return point
 
