@@ -240,7 +240,6 @@ class DoorTraverseNode:
 
         # Use fixed door data during traverse
         door_center = self.fixed_door_center if use_fixed_data else self.door_center
-        door_normal = self.fixed_door_normal if use_fixed_data else self.door_normal
 
         # Calculate movement vector from quadrotor to door center
         diff_x = door_center.x - current_pos.x
@@ -253,12 +252,12 @@ class DoorTraverseNode:
         point = Point()
         if abs_x > abs_y:
             # X is primary axis - maintain y coordinate
-            point.x = door_center.x + door_normal.x * distance
+            point.x = door_center.x + distance
             point.y = door_center.y
         else:
             # Y is primary axis - maintain x coordinate
             point.x = door_center.x
-            point.y = door_center.y + door_normal.y * distance
+            point.y = door_center.y + distance
         point.z = door_center.z
         return point
 
@@ -328,7 +327,7 @@ class DoorTraverseNode:
 
     def _handle_traverse_state(self):
         """Execute direct door traversal."""
-        if not self.door_center or not self.door_normal:
+        if not self.door_center and not self.fixed_door_center:
             # Hold position while waiting for door detection
             self._publish_setpoint(self.current_pose.pose.position)
             rospy.loginfo_throttle(5.0, "Waiting for door detection")
@@ -340,6 +339,9 @@ class DoorTraverseNode:
             self.fixed_door_normal = self.door_normal
             rospy.loginfo("Door data fixed for traverse")
 
+        if self._calculate_distance(self.fixed_door_center, self.door_center) < 0.1:
+            self.fixed_door_center = self.door_center
+            self.fixed_door_normal = self.door_normal
             # Create markers for door center and end position
             markers = MarkerArray()
 
@@ -395,13 +397,13 @@ class DoorTraverseNode:
         current_pos = self.current_pose.pose.position
 
         # Calculate distance to end point and normalize to get speed scale
-        distance_to_end = self._calculate_distance(current_pos, end_pos)
+        distance_to_door = self._calculate_distance(current_pos, self.fixed_door_center)
 
         # Adjust speed scale based on distance to end point
         factor = 1.0
-        if distance_to_end > 1.0 and distance_to_end < 2.0:
+        if distance_to_door > 0.5 and distance_to_door < 1.0:
             factor = 0.5
-        elif distance_to_end < 1.0:
+        elif distance_to_door < 0.5:
             factor = 0.25
 
         # Create next setpoint
@@ -426,7 +428,7 @@ class DoorTraverseNode:
         self._update_trajectories(current_pos, target)
 
         # Check if we've reached the end
-        if distance_to_end < step_size:
+        if self._calculate_distance(current_pos, end_pos) < step_size:
             target = end_pos
             # Update trajectories with final position
             self._update_trajectories(current_pos, end_pos)
