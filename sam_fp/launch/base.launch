@@ -18,10 +18,12 @@
     <!-- System configuration -->
     <arg name="tensorrt_path" default="" doc="TensorRT library path"/>
     <arg name="hf_endpoint" default="https://hf-mirror.com" doc="Hugging Face endpoint URL"/>
+    <arg name="transformers_offline" default="1" doc="Use offline mode for transformers"/>
     <arg name="enable_metrics" default="false" doc="Enable metrics"/>
 
     <!-- Environment variables -->
     <env name="HF_ENDPOINT" value="$(arg hf_endpoint)"/>
+    <env name="TRANSFORMERS_OFFLINE" value="$(arg transformers_offline)"/>
     <env name="LD_LIBRARY_PATH"
          value="$(env LD_LIBRARY_PATH):$(arg tensorrt_path)"
          if="$(eval len(arg('tensorrt_path')) > 0)"/>

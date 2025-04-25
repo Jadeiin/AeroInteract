@@ -40,6 +40,8 @@ RUN git clone --branch=${SAMROS_BRANCH} ${SAMROS_REPO} /opt/sam_ros && \
     ln -s /opt/sam_ros /workspace/catkin_ws/src && \
     /bin/bash -c 'cd /workspace/catkin_ws; source /opt/ros/${ROS_DISTRO}/setup.bash; catkin_make'
 
+RUN huggingface-downloader google/owlvit-base-patch32
+
 ENTRYPOINT ["/ros_entrypoint.sh"]
 CMD ["/bin/bash"]
 

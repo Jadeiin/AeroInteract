@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
     <!-- Camera-specific arguments -->
+    <arg name="search_text" default="[a door]" doc="Text prompt for SAM"/>
     <arg name="image_topic" default="/camera/color/image_raw" doc="RGB image topic"/>
     <arg name="point_cloud_topic" default="/camera/depth_registered/points" doc="Point cloud topic"/>
     <arg name="camera_frame" default="camera_link" doc="Camera frame ID"/>
+    <arg name="start_rviz" default="true" doc="Start RViz"/>
     <arg name="rviz_config" default="$(find sam_fp)/rviz/default.rviz" doc="RViz config file"/>
 
     <!-- Camera node -->
@@ -16,9 +18,11 @@
 
     <!-- Include base launch file -->
     <include file="$(find sam_fp)/launch/base.launch">
+        <arg name="search_text" value="$(arg search_text)"/>
         <arg name="image_topic" value="$(arg image_topic)"/>
         <arg name="point_cloud_topic" value="$(arg point_cloud_topic)"/>
         <arg name="camera_frame" value="$(arg camera_frame)"/>
+        <arg name="start_rviz" value="$(arg start_rviz)"/>
         <arg name="rviz_config" value="$(arg rviz_config)"/>
     </include>
 

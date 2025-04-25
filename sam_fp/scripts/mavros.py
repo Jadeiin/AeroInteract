@@ -340,7 +340,7 @@ class DoorTraverseNode:
             self.fixed_door_normal = self.door_normal
             rospy.loginfo("Door data fixed for traverse")
 
-        if self._calculate_distance(self.fixed_door_center, self.door_center) < 0.1:
+        if self.door_center and self._calculate_distance(self.fixed_door_center, self.door_center) < 0.1:
             self.fixed_door_center = self.door_center
             self.fixed_door_normal = self.door_normal
             # Create markers for door center and end position

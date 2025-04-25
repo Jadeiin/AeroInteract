@@ -54,6 +54,8 @@ RUN mkdir -p /workspace/catkin_ws/src && \
 # Add udev rule for orbbec on host machine
 # bash ./scripts/install_udev_rules.sh (in OrbbecSDK_ROS1 repo)
 
+RUN huggingface-downloader google/owlvit-base-patch32
+
 ENTRYPOINT ["/ros_entrypoint.sh"]
 CMD ["/bin/bash"]
 
