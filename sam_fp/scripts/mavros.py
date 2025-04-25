@@ -168,23 +168,42 @@ class DoorTraverseNode:
 
     def _enable_offboard_mode(self):
         """Set vehicle to offboard mode."""
-        if self.current_state.mode != "OFFBOARD":
-            if self.set_mode_client(custom_mode="OFFBOARD"):
+        offb_set_mode = SetMode()
+        offb_set_mode.custom_mode = "OFFBOARD"
+
+        # If already in OFFBOARD mode, return success
+        if self.current_state.mode == "OFFBOARD":
+            return True
+
+        try:
+            response = self.set_mode_client(0, offb_set_mode.custom_mode)
+            if response.mode_sent:
                 rospy.loginfo("Offboard mode enabled")
                 return True
-            rospy.logwarn("Failed to set OFFBOARD mode")
+            else:
+                rospy.logwarn("Failed to set OFFBOARD mode")
+                return False
+        except rospy.ServiceException as e:
+            rospy.logerr(f"Service call failed: {e}")
             return False
-        return True
 
     def _arm_vehicle(self):
         """Arm the vehicle."""
-        if not self.current_state.armed:
-            if self.arming_client(True):
+        # If already armed, return success
+        if self.current_state.armed:
+            return True
+
+        try:
+            response = self.arming_client(True)
+            if response.success:
                 rospy.loginfo("Vehicle armed")
                 return True
-            rospy.logwarn("Failed to arm vehicle")
+            else:
+                rospy.logwarn("Failed to arm vehicle")
+                return False
+        except rospy.ServiceException as e:
+            rospy.logerr(f"Service call failed: {e}")
             return False
-        return True
 
     def _publish_setpoint(self, position, orientation=None, stamp=None):
         """Publish a setpoint position."""
