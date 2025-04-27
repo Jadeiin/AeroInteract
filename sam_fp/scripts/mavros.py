@@ -1,12 +1,9 @@
 import rospy
 import math
-import time
 import tf
 from geometry_msgs.msg import (
     PoseStamped,
     Point,
-    Vector3,
-    TransformStamped,
     PointStamped,
 )
 from visualization_msgs.msg import MarkerArray, Marker
@@ -254,32 +251,34 @@ class DoorTraverseNode:
         )
 
     def _calculate_door_position(self, distance, use_fixed_data=True):
-        """Calculate position relative to door center using primary axis."""
+        """Calculate target position beyond the door.
+
+        The target position is determined by:
+        1. Finding the dominant axis (X or Y) based on largest position difference
+        2. On that axis, add distance if UAV is before door, subtract if after
+        3. Maintaining the other axis aligned with door center
+        """
+        # Get current position and door center
         current_pos = self.current_pose.pose.position
-
-        # Use fixed door data during traverse
         door_center = self.fixed_door_center if use_fixed_data else self.door_center
-        door_normal = self.fixed_door_normal if use_fixed_data else self.door_normal
 
-        # Calculate movement vector from quadrotor to door center
-        diff_x = door_center.x - current_pos.x
-        diff_y = door_center.y - current_pos.y
+        # Calculate position differences
+        dx = abs(door_center.x - current_pos.x)
+        dy = abs(door_center.y - current_pos.y)
 
-        # Determine primary axis based on largest positional difference
-        abs_x = abs(diff_x)
-        abs_y = abs(diff_y)
+        # Create target point aligned with door center
+        target = Point()
+        target.x = door_center.x
+        target.y = door_center.y
+        target.z = door_center.z
 
-        point = Point()
-        if abs_x > abs_y:
-            # X is primary axis - maintain y coordinate
-            point.x = door_center.x + door_normal.x / abs(door_normal.x) * distance
-            point.y = door_center.y
-        else:
-            # Y is primary axis - maintain x coordinate
-            point.x = door_center.x
-            point.y = door_center.y + door_normal.y / abs(door_normal.y) * distance
-        point.z = door_center.z
-        return point
+        # Adjust target on dominant axis
+        if dx > dy:  # X is dominant axis
+            target.x += distance if current_pos.x < door_center.x else -distance
+        else:  # Y is dominant axis
+            target.y += distance if current_pos.y < door_center.y else -distance
+
+        return target
 
     def _update_trajectories(self, current_pos, target_pos):
         """Update and publish target and actual trajectory paths."""
@@ -359,7 +358,10 @@ class DoorTraverseNode:
             self.fixed_door_normal = self.door_normal
             rospy.loginfo("Door data fixed for traverse")
 
-        if self.door_center and self._calculate_distance(self.fixed_door_center, self.door_center) < 0.1:
+        if (
+            self.door_center
+            and self._calculate_distance(self.fixed_door_center, self.door_center) < 0.1
+        ):
             self.fixed_door_center = self.door_center
             self.fixed_door_normal = self.door_normal
             # Create markers for door center and end position

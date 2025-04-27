@@ -189,6 +189,7 @@ target_link_libraries(wall_detection_node
 catkin_install_python(PROGRAMS
   scripts/samros.py
   scripts/mavros.py
+  scripts/mavros_real.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
