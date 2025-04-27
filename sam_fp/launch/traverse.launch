@@ -35,8 +35,8 @@
     </include>
 
     <!-- Door traverse node -->
-    <node if="$(arg start_traverse)" name="door_traverse_node" pkg="sam_fp" type="mavros.py" output="screen">
-        <!-- Parameters inherited from mavros.py -->
+    <node if="$(arg start_traverse)" name="door_traverse_node_real" pkg="sam_fp" type="mavros_real.py" output="screen">
+        <!-- Parameters inherited from mavros_real.py -->
     </node>
 
     <!-- TF tree configuration -->
