@@ -53,6 +53,8 @@ class DoorTraverseNodeReal:
         # Fixed door data (set after switching to offboard)
         self.fixed_door_center = None
         self.fixed_door_normal = None
+        self.dominant_axis = None  # 'x' or 'y'
+        self.initial_side = None   # True if UAV starts before door center
 
         # Navigation state
         self.execution_state = "WAIT_FOR_POSITION_HOLD"
@@ -187,32 +189,21 @@ class DoorTraverseNodeReal:
         )
 
     def _calculate_door_position(self, distance, use_fixed_data=True):
-        """Calculate target position beyond the door.
-
-        The target position is determined by:
-        1. Finding the dominant axis (X or Y) based on largest position difference
-        2. On that axis, add distance if UAV is before door, subtract if after
-        3. Maintaining the other axis aligned with door center
-        """
-        # Get current position and door center
-        current_pos = self.current_pose.pose.position
+        """Calculate target position beyond the door using stored alignment."""
+        # Use fixed door center if available
         door_center = self.fixed_door_center if use_fixed_data else self.door_center
 
-        # Calculate position differences
-        dx = abs(door_center.x - current_pos.x)
-        dy = abs(door_center.y - current_pos.y)
-
-        # Create target point aligned with door center
+        # Initialize target at door center
         target = Point()
         target.x = door_center.x
         target.y = door_center.y
         target.z = door_center.z
 
-        # Adjust target on dominant axis
-        if dx > dy:  # X is dominant axis
-            target.x += distance if current_pos.x < door_center.x else -distance
-        else:  # Y is dominant axis
-            target.y += distance if current_pos.y < door_center.y else -distance
+        # Apply offset based on stored alignment
+        if self.dominant_axis == 'x':
+            target.x += distance if self.initial_side else -distance
+        else:
+            target.y += distance if self.initial_side else -distance
 
         return target
 
@@ -276,11 +267,25 @@ class DoorTraverseNodeReal:
             rospy.loginfo_throttle(5.0, "Waiting for door detection")
             return
 
-        # First time in traverse with valid door data - store fixed values
+        # First time in traverse with valid door data - store fixed values and initial alignment
         if not self.fixed_door_center:
+            # Store door data
             self.fixed_door_center = self.door_center
             self.fixed_door_normal = self.door_normal
-            rospy.loginfo("Door data fixed for traverse")
+
+            # Determine dominant axis
+            current_pos = self.current_pose.pose.position
+            dx = abs(self.door_center.x - current_pos.x)
+            dy = abs(self.door_center.y - current_pos.y)
+            self.dominant_axis = 'x' if dx > dy else 'y'
+
+            # Record which side we're starting from
+            if self.dominant_axis == 'x':
+                self.initial_side = current_pos.x < self.door_center.x
+            else:
+                self.initial_side = current_pos.y < self.door_center.y
+
+            rospy.loginfo(f"Door data fixed. Dominant axis: {self.dominant_axis}, Starting {'before' if self.initial_side else 'after'} door")
 
         # Update door data if detection is close to fixed position
         if (
