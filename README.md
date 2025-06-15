@@ -36,7 +36,7 @@ trtexec \
 build the ROS package. Change the corresponding camera topic, engine path, text prompt etc. before using.
 
 ```
-ln -s sam_ros/tools/*.sh .
+ln -s AeroInteract/tools/*.sh .
 cd catkin_ws && catkin_make && cd ..
 # use tmux for better logging
 bash rosbag.sh; bash vnc.sh
@@ -125,7 +125,7 @@ Then run command below:
 
 ```
 # base package for development usage, camera package for deployment usage
-jetson-containers build sam_ros:base --package-dirs=/path/to/sam_ros/tools
+jetson-containers build sam_ros:base --package-dirs=/path/to/AeroInteract/tools
 
 # You can add following arguments to speed-up build steps if your network situation are bad
 # --build-arg http_proxy=http://127.0.0.1:7890,https_proxy=http://127.0.0.1:7890
