@@ -15,7 +15,7 @@ ENV ROS_PYTHON_VERSION=3
 WORKDIR /workspace
 
 ARG SAMROS_REPO="https://github.com/Jadeiin/AeroInteract" \
-    SAMROS_BRANCH=develop
+    SAMROS_BRANCH=main
 
 # RUN apt-get update && apt-get install -y --no-install-recommends \
 #     libpcl-dev && \
