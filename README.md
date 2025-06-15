@@ -39,7 +39,7 @@ build the ROS package. Change the corresponding camera topic, engine path, text 
 ln -s sam_ros/tools/*.sh .
 cd catkin_ws && catkin_make && cd ..
 # use tmux for better logging
-bash ros.sh; bash vnc.sh
+bash rosbag.sh; bash vnc.sh
 # or use roslaunch
 source devel/setup.bash; roslaunch sam_fp rosbag.launch
 # add parameters as needed, like
@@ -137,13 +137,24 @@ jetson-containers build sam_ros:base --package-dirs=/path/to/sam_ros/tools
 ## TODO
 
 - [x] publish door location & interaction point/vector (for nav use): use "/objects_marker"
-- [ ] add trajectory planning
-- [ ] add simulation (e.g. Gazebo)
+- [x] add trajectory planning
+  - [x] simple straight line
+  - [ ] advanced planning (e.g. include door size/shape/orientation + minimal snap + prediction)
+- [x] add simulation (e.g. Gazebo)
+  - [x] add model (quadrotor & depth camera - iris_depth_camera)
+  - [x] add world (doors & walls - )
+  - [x] run simulation (adjust door physics & planning logic)
+    - [x] TF tree problems: 1. wrong transformation between camera_link and map (fixed: orginal pointcloud position is wrong) 2. Lookup been a little bit fast (0.002~3 ahead, ignored)
+    - [x] Door interaction problems: 1. inaccurate dynamics caused by ODE 2. add more options like switch from position mode to traverse mode then fallback (currently takeoff only) 3. implement continuous door traverse for demonstration purpose
+    - [x] Integrate with control module
+  - [x] add more descriptions & tutorials
+- [x] real world test
 
+optional:
 - [x] add metrics option
 - [x] add code documentation
 - [ ] add build pipeline
-- [ ] move masks_msgs package to sam_fp
-- [ ] use cuPCL
+- [ ] integrate masks_msgs package
+- [ ] use cuPCL entirely
 - [ ] use nodelet
 - [ ] migrate to ROS2

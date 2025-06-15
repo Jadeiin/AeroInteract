@@ -430,12 +430,14 @@ class DoorTraverseNode:
         # Calculate distance to end point and normalize to get speed scale
         distance_to_door = self._calculate_distance(current_pos, self.fixed_door_center)
 
-        # Adjust speed scale based on distance to end point
-        factor = 1.0
-        if distance_to_door > 0.5 and distance_to_door < 1.0:
-            factor = 0.5
-        elif distance_to_door < 0.5:
+        # Adjust speed scale based on distance
+        if distance_to_door >= 1.0:
+            factor = 1.0
+        elif distance_to_door <= 0.5:
             factor = 0.25
+        else:
+            # Linear interpolation between 1.0 and 0.25
+            factor = 0.25 + 0.75 * (distance_to_door - 0.5) / 0.5
 
         # Create next setpoint
         target = Point()
