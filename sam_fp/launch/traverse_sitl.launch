@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+    <!-- Launch arguments -->
+    <!-- SAM and sensor arguments -->
+    <arg name="search_text" default="[a door]" doc="Text prompt for SAM"/>
+    <arg name="image_topic" default="/camera/color/image_raw" doc="RGB image topic"/>
+    <arg name="point_cloud_topic" default="/camera/depth/color/points" doc="Point cloud topic"/>
+    <arg name="camera_frame" default="camera_link" doc="Camera frame ID"/>
+    <arg name="depth_frame" default="D435i::camera_depth_frame" doc="Depth frame ID"/>
+
+    <!-- PX4 SITL and Gazebo arguments -->
+    <arg name="vehicle" default="iris"/>
+    <arg name="vehicle_model" default="iris_D435i"/>
+    <arg name="world" default="$(find sam_fp)/worlds/door.world"/>
+    <arg name="sdf" default="$(find mavlink_sitl_gazebo)/models/$(arg vehicle_model)/$(arg vehicle_model).sdf"/>
+    <arg name="gui" default="true"/>
+    <arg name="debug" default="false"/>
+    <arg name="verbose" default="false"/>
+    <arg name="paused" default="false"/>
+
+    <!-- Initial pose -->
+    <arg name="x" default="2" doc="Initial X position"/>
+    <arg name="y" default="4" doc="Initial Y position"/>
+    <arg name="z" default="0" doc="Initial Z position"/>
+    <arg name="R" default="0" doc="Initial roll"/>
+    <arg name="P" default="0" doc="Initial pitch"/>
+    <arg name="Y" default="-1.57079632679" doc="Initial yaw"/>
+
+    <!-- Visualization -->
+    <arg name="start_rviz" default="true" doc="Start RViz"/>
+    <arg name="rviz_config" default="$(find sam_fp)/rviz/traverse_sitl.rviz" doc="RViz config file"/>
+
+    <!-- Launch PX4 SITL with MAVROS -->
+    <include file="$(find px4)/launch/mavros_posix_sitl.launch">
+        <arg name="x" value="$(arg x)"/>
+        <arg name="y" value="$(arg y)"/>
+        <arg name="z" value="$(arg z)"/>
+        <arg name="R" value="$(arg R)"/>
+        <arg name="P" value="$(arg P)"/>
+        <arg name="Y" value="$(arg Y)"/>
+        <arg name="vehicle" value="$(arg vehicle)"/>
+        <arg name="sdf" value="$(arg sdf)"/>
+        <arg name="world" value="$(arg world)"/>
+        <arg name="gui" value="$(arg gui)"/>
+        <arg name="debug" value="$(arg debug)"/>
+        <arg name="verbose" value="$(arg verbose)"/>
+        <arg name="paused" value="$(arg paused)"/>
+    </include>
+
+    <!-- Wait for SITL to be ready -->
+    <node pkg="rostopic" type="rostopic" name="wait_for_sitl"
+          args="hz /mavros/state" output="screen"/>
+
+    <!-- Include base launch file with delay -->
+    <include file="$(find sam_fp)/launch/base.launch">
+        <arg name="search_text" value="$(arg search_text)"/>
+        <arg name="image_topic" value="$(arg image_topic)"/>
+        <arg name="point_cloud_topic" value="$(arg point_cloud_topic)"/>
+        <arg name="camera_frame" value="$(arg camera_frame)"/>
+        <arg name="start_rviz" value="false"/>
+        <arg name="rviz_config" value="$(arg rviz_config)"/>
+    </include>
+
+    <!-- Autonomous Navigation -->
+    <node name="door_traverse_node" pkg="sam_fp" type="mavros.py" output="screen"
+          launch-prefix="bash -c 'sleep 5; $0 $@'"/>
+
+    <!-- TF tree configuration -->
+    <!-- remember to edit px4_config.yaml to publish local_position-->
+    <node pkg="tf" type="static_transform_publisher" name="camera_transform"
+          args="0.12 0 0 0 0 0 base_link $(arg camera_frame) 100"/>
+    <node pkg="tf" type="static_transform_publisher" name="depth_frame_transform"
+          args="0 0 0 -1.57079632679 0 -1.57079632679 $(arg camera_frame) $(arg depth_frame) 100"/>
+    <node pkg="tf" type="static_transform_publisher" name="map_transform"
+          args="0 0 0 0 0 0 map odom 100"/>
+
+    <!-- RViz -->
+    <node if="$(arg start_rviz)" name="rviz" pkg="rviz" type="rviz"
+          args="-d $(arg rviz_config)" output="screen"
+          launch-prefix="bash -c 'sleep 2; $0 $@'"/>
+</launch>

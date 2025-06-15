@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+    <!-- Rosbag-specific arguments -->
+    <arg name="bag_file" default="closed.bag" doc="Bag file to play"/>
+    <arg name="bag_path" default="/rosbag" doc="Path to bag file"/>
+    <arg name="loop" default="true" doc="Loop playback"/>
+    <arg name="rate" default="1.0" doc="Playback rate multiplier"/>
+    <arg name="delay" default="5" doc="Startup delay in seconds"/>
+    <arg name="use_sim_time" default="true" doc="Use simulation time"/>
+
+    <!-- Camera-specific arguments -->
+    <arg name="image_topic" default="/camera/color/image_raw" doc="RGB image topic"/>
+    <arg name="point_cloud_topic" default="/camera/depth_registered/points" doc="Point cloud topic"/>
+    <arg name="camera_frame" default="camera_link" doc="Camera frame ID"/>
+    <arg name="rviz_config" default="$(find sam_fp)/rviz/default.rviz" doc="RViz config file"/>
+
+    <!-- Set use_sim_time parameter -->
+    <param name="/use_sim_time" value="$(arg use_sim_time)"/>
+
+    <!-- Rosbag play node -->
+    <node pkg="rosbag" type="play" name="player" output="screen"
+          launch-prefix="bash -c 'sleep $(arg delay); $0 $@'"
+          args="$(eval arg('bag_path') + '/' + arg('bag_file') + ' ' + (arg('loop') and '-l' or '') + ' --clock -r ' + str(arg('rate')))">
+    </node>
+
+    <!-- Include base launch file -->
+    <include file="$(find sam_fp)/launch/base.launch">
+        <arg name="image_topic" value="$(arg image_topic)"/>
+        <arg name="point_cloud_topic" value="$(arg point_cloud_topic)"/>
+        <arg name="camera_frame" value="$(arg camera_frame)"/>
+        <arg name="rviz_config" value="$(arg rviz_config)"/>
+    </include>
+
+    <!-- TF tree configuration if needed -->
+    <!-- <node pkg="tf" type="static_transform_publisher" name="camera_broadcaster" 
+          args="0 0 0 0 0 0 map $(arg camera_frame) 100" /> -->
+</launch>

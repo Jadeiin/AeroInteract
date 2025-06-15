@@ -15,7 +15,6 @@ find_package(catkin REQUIRED COMPONENTS
   cv_bridge
   masks_msgs
 )
-find_package(OpenCV REQUIRED)
 find_package(PCL REQUIRED)
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -122,7 +121,6 @@ catkin_package(
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
-  ${OpenCV_INCLUDE_DIRS}
   ${PCL_INCLUDE_DIRS}
   masks_msgs
 )
@@ -130,6 +128,7 @@ include_directories(
 # Declare a C++ library
 add_library(${PROJECT_NAME}
   src/pcd_processing.cpp
+  src/wall_detection.cpp
 )
 
 ## Add cmake target dependencies of the library
@@ -143,6 +142,10 @@ add_library(${PROJECT_NAME}
 add_executable(pcd_processing_node 
   src/pcd_processing_node.cpp
 
+)
+
+add_executable(wall_detection_node
+  src/wall_detection_node.cpp
 )
 
 ## Rename C++ executable without prefix
@@ -165,7 +168,12 @@ add_executable(pcd_processing_node
 target_link_libraries(pcd_processing_node
   ${catkin_LIBRARIES}
   ${PCL_LIBRARIES}
-  ${OpenCV_LIBRARIES}
+  ${PROJECT_NAME}
+)
+
+target_link_libraries(wall_detection_node
+  ${catkin_LIBRARIES}
+  ${PCL_LIBRARIES}
   ${PROJECT_NAME}
 )
 
@@ -180,6 +188,8 @@ target_link_libraries(pcd_processing_node
 ## in contrast to setup.py, you can choose the destination
 catkin_install_python(PROGRAMS
   scripts/samros.py
+  scripts/mavros.py
+  scripts/mavros_real.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

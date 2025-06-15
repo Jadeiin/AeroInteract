@@ -1,0 +1,62 @@
+#---
+# name: sam_ros:camera
+# group: robots
+# depends: [ros:noetic-desktop, nanoowl, nanosam, realsense]
+# test: test.sh
+#---
+ARG BASE_IMAGE
+FROM ${BASE_IMAGE}
+
+ENV ROS_DISTRO=noetic
+ENV ROS_ROOT=/opt/ros/${ROS_DISTRO}
+ENV ROS_PACKAGE_PATH=/opt/ros/${ROS_DISTRO}/share
+ENV ROS_PYTHON_VERSION=3
+
+WORKDIR /workspace
+
+ARG SAMROS_REPO="https://github.com/Jadeiin/AeroInteract" \
+    SAMROS_BRANCH=develop
+
+# Root workspace
+RUN cd ros_catkin_ws && \
+    rosinstall_generator camera_info_manager pcl_conversions realsense2_camera rgbd_launch --rosdistro ${ROS_DISTRO} --deps --tar --exclude RPP librealsense2 > ${ROS_DISTRO}-sam_ros.rosinstall && \
+    vcs import --retry 100 --input ${ROS_DISTRO}-sam_ros.rosinstall ./src && \
+    apt-get update && \
+    rosdep install -y \
+	 --from-paths ./src \
+	 --ignore-packages-from-source \
+	 --rosdistro ${ROS_DISTRO} \
+	 --skip-keys "python3-pykdl libopencv-dev libopencv-contrib-dev libopencv-imgproc-dev python-opencv python3-opencv ros-${ROS_DISTRO}-librealsense2" && \
+    python3 ./src/catkin/bin/catkin_make_isolated --install --install-space ${ROS_ROOT} -DCMAKE_BUILD_TYPE=Release -DSETUPTOOLS_DEB_LAYOUT=OFF && \
+    rm -rf /var/lib/apt/lists/* && \
+    apt-get clean
+
+# Orbbec SDK dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libdw-dev && \
+    rm -rf /var/lib/apt/lists/* && \
+    apt-get clean
+
+# Workspace
+RUN mkdir -p /workspace/catkin_ws/src && \
+    git clone --branch=main --depth=1 https://github.com/orbbec/OrbbecSDK_ROS1.git /opt/orbbec_camera && \
+    git clone --branch=${SAMROS_BRANCH} ${SAMROS_REPO} /opt/sam_ros && \
+    # add ordered_pc arg and param in femto_bolt launch file at line 14 and 77
+    sed -i '14i \ \ \ \ <arg name="ordered_pc" default="true" />' /opt/orbbec_camera/launch/femto_bolt.launch && \
+    sed -i '77i \ \ \ \ \ \ \ \ \ \ \ \ <param name="ordered_pc" value="$(arg ordered_pc)" />' /opt/orbbec_camera/launch/femto_bolt.launch && \
+    ln -s /opt/orbbec_camera /workspace/catkin_ws/src && \
+    ln -s /opt/sam_ros /workspace/catkin_ws/src && \
+    /bin/bash -c 'cd /workspace/catkin_ws; source /opt/ros/${ROS_DISTRO}/setup.bash; catkin_make'
+
+# Add udev rule for depthai on host machine
+# echo 'SUBSYSTEM=="usb", ATTRS{idVendor}=="03e7", MODE="0666"' | sudo tee /etc/udev/rules.d/80-movidius.rules
+
+# Add udev rule for orbbec on host machine
+# bash ./scripts/install_udev_rules.sh (in OrbbecSDK_ROS1 repo)
+
+RUN huggingface-downloader google/owlvit-base-patch32
+
+ENTRYPOINT ["/ros_entrypoint.sh"]
+CMD ["/bin/bash"]
+
+WORKDIR /workspace/catkin_ws
